@@ -1,26 +1,66 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Форма обратной связи</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Форма обратной связи</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- оставим на случай будущих переопределений -->
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <h1>Свяжитесь с нами</h1>
-    <form id="contactForm">
-        <label>Имя:</label>
-        <input type="text" id="name" required>
+<body class="bg-gray-100 min-h-screen">
+  <header class="py-10">
+    <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-900">Свяжитесь с нами</h1>
+  </header>
 
-        <label>Email:</label>
-        <input type="email" id="email" required>
+  <main class="max-w-xl mx-auto px-4">
+    <!-- Success message -->
+    <div id="success" class="hidden mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+      🎉 Спасибо! Ваше сообщение отправлено (демо).
+    </div>
 
-        <label>Сообщение:</label>
-        <textarea id="message" required></textarea>
+    <form id="contactForm" novalidate
+          class="bg-white shadow-md rounded-xl p-6 md:p-8 border border-gray-100">
+      <!-- Имя -->
+      <div class="mb-5">
+        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Имя</label>
+        <input id="name" name="name" type="text" required
+               class="peer w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" />
+        <p class="mt-1 text-sm text-red-600 hidden" data-error-for="name">Введите имя (минимум 2 символа).</p>
+      </div>
 
-        <button type="submit">Отправить</button>
+      <!-- Email -->
+      <div class="mb-5">
+        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input id="email" name="email" type="email" required
+               class="peer w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" />
+        <p class="mt-1 text-sm text-red-600 hidden" data-error-for="email">Введите корректный email.</p>
+      </div>
+
+      <!-- Сообщение -->
+      <div class="mb-6">
+        <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Сообщение</label>
+        <textarea id="message" name="message" rows="4" required
+                  class="peer w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"></textarea>
+        <p class="mt-1 text-sm text-red-600 hidden" data-error-for="message">Сообщение должно быть не короче 5 символов.</p>
+      </div>
+
+      <button type="submit"
+              class="w-full inline-flex items-center justify-center rounded-lg bg-green-600 text-white font-medium px-4 py-3 hover:bg-green-700 active:bg-green-800 disabled:opacity-60 transition">
+        <span id="btnLabel">Отправить</span>
+        <svg id="btnSpinner" class="hidden ml-2 h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+        </svg>
+      </button>
     </form>
 
-    <script src="script.js"></script>
+    <p class="text-center text-xs text-gray-400 mt-4">
+      Демоверсия: данные никуда не отправляются.
+    </p>
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>
