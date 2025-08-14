@@ -1,125 +1,271 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
+  <title>Feedback Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Feedback — админ-просмотр</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
+    body { margin: 24px; }
+    h1 { margin: 0 0 12px; }
+    .bar { display: flex; gap: 12px; align-items: center; margin: 12px 0 20px; }
+    input[type="text"], input[type="email"], textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; outline: none;
+    }
+    textarea { min-height: 64px; resize: vertical; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; text-align: left; padding: 10px; vertical-align: top; }
+    th { font-weight: 600; font-size: 14px; color: #444; }
+    tr:hover { background: #fafafa; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid #ddd; background: #fff; padding: 6px 10px; border-radius: 10px; cursor: pointer;
+      transition: transform .06s ease, box-shadow .12s ease, background .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    .btn.primary { border-color: #1b72ff; }
+    .btn.danger { border-color: #ff4d4f; }
+    .muted { color: #777; font-size: 12px; }
+    .pill { padding: 2px 8px; border-radius: 999px; border: 1px solid #eee; background: #f8f8f8; }
+    .right { margin-left: auto; }
+    .status { font-size: 13px; }
+    .nowrap { white-space: nowrap; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen p-6">
-  <header class="flex flex-wrap items-center gap-4 mb-6">
-    <h1 class="text-2xl font-bold">Feedback</h1>
-    <span id="total" class="px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-sm">0</span>
-    <input id="q" type="search" placeholder="Поиск: имя, email, сообщение…" 
-           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none min-w-[240px]" />
-    <button id="refresh" 
-            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
-      Обновить
-    </button>
-    <span id="updated" class="text-gray-500 text-sm"></span>
-  </header>
+<body>
+  <h1>Feedback Admin</h1>
 
-  <div id="error" class="text-red-600 mb-4 hidden"></div>
+  <div class="bar">
+    <span class="muted">API base:</span>
+    <code id="apiBaseView" class="pill"></code>
 
-  <div class="overflow-x-auto bg-white shadow rounded-lg">
-    <table class="min-w-full text-sm">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="py-2 px-4 text-left">Время</th>
-          <th class="py-2 px-4 text-left">Имя</th>
-          <th class="py-2 px-4 text-left">Email</th>
-          <th class="py-2 px-4 text-left">Сообщение</th>
-        </tr>
-      </thead>
-      <tbody id="rows">
-        <tr>
-          <td colspan="4" class="py-6 text-center text-gray-500">Загрузка…</td>
-        </tr>
-      </tbody>
-    </table>
+    <span class="muted right">Admin token:</span>
+    <input id="adminToken" type="text" placeholder="X-Admin-Token (optional)" style="max-width: 280px">
+    <button class="btn" id="saveTokenBtn">Save</button>
+    <button class="btn" id="clearTokenBtn">Clear</button>
+
+    <span id="status" class="status muted"></span>
   </div>
 
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th class="nowrap">Name</th>
+        <th class="nowrap">Email</th>
+        <th>Message</th>
+        <th class="nowrap">Created</th>
+        <th class="nowrap">Meta</th>
+        <th class="nowrap">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="6" class="muted">Loading…</td></tr>
+    </tbody>
+  </table>
+
   <script>
-    const API = "http://localhost:3001/api/feedback";
-    const rowsEl = document.getElementById("rows");
-    const totalEl = document.getElementById("total");
-    const errorEl = document.getElementById("error");
-    const updatedEl = document.getElementById("updated");
-    const qEl = document.getElementById("q");
-    const refreshBtn = document.getElementById("refresh");
+    // === CONFIG ===
+    const API_BASE = localStorage.getItem('api_base') || 'http://localhost:3001';
+    const TOKEN_KEY = 'admin_token';
 
-    let data = [];
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
 
+    const state = {
+      items: [],
+      editing: new Set(), // ids в режиме редактирования
+    };
+
+    // === HELPERS ===
     function fmtDate(iso) {
-      const d = iso ? new Date(iso) : null;
-      return d && !isNaN(d) ? d.toLocaleString() : "—";
+      try {
+        const d = new Date(iso);
+        if (isNaN(d)) return iso || '';
+        return d.toLocaleString();
+      } catch { return iso || ''; }
+    }
+    function headersJson() {
+      const h = { 'Content-Type': 'application/json' };
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (token) h['X-Admin-Token'] = token;
+      return h;
+    }
+    function setStatus(msg) {
+      $('#status').textContent = msg || '';
     }
 
-    function render() {
-      const q = (qEl.value || "").toLowerCase();
-      const filtered = !q ? data : data.filter(item => {
-        const hay = [
-          item.name, item.email, item.message,
-          item.createdAt, item.created_at, item.timestamp
-        ].join(" ").toLowerCase();
-        return hay.includes(q);
-      });
+    // === CRUD CALLS ===
+    async function loadFeedback() {
+      setStatus('Loading…');
+      try {
+        const res = await fetch(`${API_BASE}/api/feedback`, { headers: headersJson() });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Failed to load');
+        state.items = data.items || [];
+        render();
+        setStatus(`Loaded ${state.items.length}`);
+      } catch (e) {
+        console.error(e);
+        $('#tbody').innerHTML = `<tr><td colspan="6" class="muted">Error: ${e.message}</td></tr>`;
+        setStatus('Error');
+      }
+    }
 
-      rowsEl.innerHTML = "";
-      if (filtered.length === 0) {
-        rowsEl.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-gray-500">Ничего не найдено</td></tr>`;
-      } else {
-        rowsEl.innerHTML = filtered.map(item => {
-          const created = item.createdAt || item.created_at || item.timestamp;
+    async function deleteFeedback(id) {
+      if (!confirm('Удалить запись?')) return;
+      setStatus('Deleting…');
+      try {
+        const res = await fetch(`${API_BASE}/api/feedback/${id}`, {
+          method: 'DELETE',
+          headers: headersJson(),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Delete failed');
+        state.items = state.items.filter(x => x.id !== id);
+        state.editing.delete(id);
+        render();
+        setStatus('Deleted');
+      } catch (e) {
+        alert('Delete failed: ' + e.message);
+        setStatus('Error');
+      }
+    }
+
+    async function updateFeedback(id, partial) {
+      setStatus('Saving…');
+      try {
+        const res = await fetch(`${API_BASE}/api/feedback/${id}`, {
+          method: 'PATCH',
+          headers: headersJson(),
+          body: JSON.stringify(partial),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Update failed');
+
+        // локально обновим
+        const idx = state.items.findIndex(x => x.id === id);
+        if (idx >= 0) state.items[idx] = { ...state.items[idx], ...partial };
+        state.editing.delete(id);
+        render();
+        setStatus('Saved');
+      } catch (e) {
+        alert('Update failed: ' + e.message);
+        setStatus('Error');
+      }
+    }
+
+    // === UI ACTIONS ===
+    function enterEditMode(id) {
+      state.editing.add(id);
+      render();
+      // фокус на первом поле
+      const first = document.querySelector(`[data-id="${id}"] input, [data-id="${id}"] textarea`);
+      if (first) first.focus();
+    }
+    function cancelEdit(id) {
+      state.editing.delete(id);
+      render();
+    }
+    function saveRow(id) {
+      const row = document.querySelector(`[data-id="${id}"]`);
+      const name = row.querySelector('input[name="name"]').value.trim();
+      const email = row.querySelector('input[name="email"]').value.trim();
+      const message = row.querySelector('textarea[name="message"]').value.trim();
+      if (!name || !email || !message) {
+        alert('Name, Email и Message обязательны');
+        return;
+      }
+      updateFeedback(id, { name, email, message });
+    }
+
+    // === RENDER ===
+    function render() {
+      const rows = state.items.map(item => {
+        const isEdit = state.editing.has(item.id);
+        if (!isEdit) {
           return `
-            <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-              <td class="py-2 px-4 whitespace-nowrap">${fmtDate(created)}</td>
-              <td class="py-2 px-4">${item.name || ""}</td>
-              <td class="py-2 px-4">${item.email || ""}</td>
-              <td class="py-2 px-4 whitespace-pre-wrap">${item.message || ""}</td>
+            <tr data-id="${item.id}">
+              <td>${escapeHtml(item.name)}</td>
+              <td>${escapeHtml(item.email)}</td>
+              <td>${nl2br(escapeHtml(item.message))}</td>
+              <td class="nowrap">${fmtDate(item.createdAt)}</td>
+              <td>
+                <div class="muted">
+                  <div><b>IP:</b> ${escapeHtml(item.ip || '')}</div>
+                  <div class="muted"><b>UA:</b> ${escapeHtml((item.userAgent || '').slice(0, 90))}${(item.userAgent||'').length>90?'…':''}</div>
+                </div>
+              </td>
+              <td class="actions">
+                <button class="btn primary" onclick="enterEditMode('${item.id}')">Edit</button>
+                <button class="btn danger" onclick="deleteFeedback('${item.id}')">Delete</button>
+              </td>
             </tr>
           `;
-        }).join("");
-      }
-      totalEl.textContent = filtered.length;
-      updatedEl.textContent = "Обновлено: " + new Date().toLocaleTimeString();
+        } else {
+          return `
+            <tr data-id="${item.id}">
+              <td><input name="name" type="text" value="${attr(item.name)}"></td>
+              <td><input name="email" type="email" value="${attr(item.email)}"></td>
+              <td><textarea name="message">${attr(item.message)}</textarea></td>
+              <td class="nowrap">${fmtDate(item.createdAt)}</td>
+              <td>
+                <div class="muted">
+                  <div><b>IP:</b> ${escapeHtml(item.ip || '')}</div>
+                  <div class="muted"><b>UA:</b> ${escapeHtml((item.userAgent || '').slice(0, 90))}${(item.userAgent||'').length>90?'…':''}</div>
+                </div>
+              </td>
+              <td class="actions">
+                <button class="btn primary" onclick="saveRow('${item.id}')">Save</button>
+                <button class="btn" onclick="cancelEdit('${item.id}')">Cancel</button>
+              </td>
+            </tr>
+          `;
+        }
+      }).join('');
+      $('#tbody').innerHTML = rows || `<tr><td colspan="6" class="muted">Empty</td></tr>`;
     }
 
-async function load() {
-  errorEl.classList.add("hidden");
-  try {
-    const res = await fetch(API);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-
-    // ищем массив
-    if (Array.isArray(json)) {
-      data = json;
-    } else if (Array.isArray(json.items)) {
-      data = json.items;
-    } else if (Array.isArray(json.data)) {
-      data = json.data;
-    } else {
-      data = [];
+    // === ESCAPE HELPERS ===
+    function escapeHtml(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+    function attr(s) {
+      // для значений в атрибутах (input/textarea value)
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    }
+    function nl2br(s) {
+      return String(s).replace(/\n/g, '<br>');
     }
 
-    data.sort((a, b) =>
-      Date.parse(b.createdAt || b.timestamp) -
-      Date.parse(a.createdAt || a.timestamp)
-    );
-    render();
-  } catch (e) {
-    rowsEl.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-red-600">Ошибка загрузки</td></tr>`;
-    errorEl.textContent = "Не удалось получить данные: " + e.message;
-    errorEl.classList.remove("hidden");
-  }
-}
+    // === INIT ===
+    (function init() {
+      // UI: базовый адрес и токен
+      $('#apiBaseView').textContent = API_BASE;
+      $('#adminToken').value = localStorage.getItem(TOKEN_KEY) || '';
 
+      $('#saveTokenBtn').addEventListener('click', () => {
+        localStorage.setItem(TOKEN_KEY, $('#adminToken').value.trim());
+        setStatus('Token saved');
+        loadFeedback();
+      });
+      $('#clearTokenBtn').addEventListener('click', () => {
+        localStorage.removeItem(TOKEN_KEY);
+        $('#adminToken').value = '';
+        setStatus('Token cleared');
+        loadFeedback();
+      });
 
-    qEl.addEventListener("input", render);
-    refreshBtn.addEventListener("click", load);
-    setInterval(load, 15000);
-    load();
+      loadFeedback();
+    })();
+
+    // Экспорт функций в глобальную область для inline onClick
+    window.enterEditMode = enterEditMode;
+    window.cancelEdit = cancelEdit;
+    window.saveRow = saveRow;
+    window.deleteFeedback = deleteFeedback;
   </script>
 </body>
 </html>

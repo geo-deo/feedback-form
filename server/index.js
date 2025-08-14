@@ -1,92 +1,92 @@
-// server/index.js (или ваш текущий файл сервера)
-
+// server/index.js
 import express from "express";
 import cors from "cors";
-import fs from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { randomUUID } from "node:crypto";
+import crypto from "crypto";
+import db from "./db.js";
+import "dotenv/config";
+
+function requireAdmin(req, res, next) {
+  const token = req.header("X-Admin-Token") || "";
+  if (token !== process.env.ADMIN_TOKEN) {
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
+  }
+  next();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// --- Paths для файлового хранилища ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DATA_DIR = path.join(__dirname, "data");
-const DATA_FILE = path.join(DATA_DIR, "feedback.jsonl");
-
-// --- Middleware ---
 app.use(express.json());
-app.use(
-  cors({
-    origin: ["http://localhost:5500", "http://127.0.0.1:5500"],
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
+app.use(cors({
+  origin: ["http://localhost:5500", "http://127.0.0.1:5500"],
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "X-Admin-Token", "Authorization"]
+}));
 
-// --- Healthcheck ---
+// Healthcheck
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// --- Приём сообщений формы и сохранение в файл ---
-app.post("/api/feedback", async (req, res) => {
-  try {
-    const { name, email, message } = req.body || {};
-    if (!name || !email || !message) {
-      return res.status(400).json({ ok: false, error: "Missing fields" });
-    }
-
-    // гарантируем наличие папки
-    await fs.mkdir(DATA_DIR, { recursive: true });
-
-    const item = {
-      id: typeof randomUUID === "function"
-        ? randomUUID()
-        : `${Date.now()}-${Math.round(Math.random() * 1e6)}`,
-      name,
-      email,
-      message,
-      createdAt: new Date().toISOString(),
-      ip: req.ip,
-      userAgent: req.get("user-agent") || null,
-    };
-
-    // JSONL: по одной JSON-записи в строку
-    await fs.appendFile(DATA_FILE, JSON.stringify(item) + "\n", "utf8");
-
-    return res.status(201).json({ ok: true, item });
-  } catch (err) {
-    console.error("Failed to save feedback:", err);
-    return res.status(500).json({ ok: false, error: "Failed to save" });
+// CREATE: Приём сообщений формы
+app.post("/api/feedback", (req, res) => {
+  const { name, email, message } = req.body || {};
+  if (!name || !email || !message) {
+    return res.status(400).json({ ok: false, error: "Missing fields" });
   }
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const ip = req.ip;
+  const userAgent = req.headers["user-agent"] || "";
+
+  const sql = `
+    INSERT INTO feedback (id, name, email, message, ip, userAgent, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
+  db.run(sql, [id, name, email, message, ip, userAgent, createdAt], function (err) {
+    if (err) return res.status(500).json({ ok: false, error: "DB insert failed" });
+    return res.json({ ok: true, id });
+  });
 });
 
-// --- Просмотр сохранённых сообщений (в учебных целях) ---
-app.get("/api/feedback", async (_req, res) => {
-  try {
-    // читаем файл, если его ещё нет — считаем, что пусто
-    let raw = "";
-    try {
-      raw = await fs.readFile(DATA_FILE, "utf8");
-    } catch (e) {
-      if (e.code !== "ENOENT") throw e;
-    }
-
-    const items =
-      raw
-        .split("\n")
-        .filter(Boolean)
-        .map((line) => JSON.parse(line)) || [];
-
-    return res.json({ ok: true, items });
-  } catch (err) {
-    console.error("Failed to read feedback:", err);
-    return res.status(500).json({ ok: false, error: "Failed to read" });
-  }
+// READ: Список сообщений
+app.get("/api/feedback", requireAdmin, (req, res) => {
+  const sql = `SELECT id, name, email, message, ip, userAgent, createdAt
+               FROM feedback ORDER BY datetime(createdAt) DESC`;
+  db.all(sql, [], (err, rows) => {
+    if (err) return res.status(500).json({ ok: false, error: "DB read failed" });
+    return res.json({ ok: true, items: rows });
+  });
 });
 
-// --- Запуск ---
-app.listen(PORT, () => {
-  console.log(`API server listening on http://localhost:${PORT}`);
+// UPDATE: Редактирование сообщения (частично)
+app.patch("/api/feedback/:id", requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const { name, email, message } = req.body || {};
+  // собираем динамический апдейт
+  const fields = [];
+  const params = [];
+  if (name !== undefined) { fields.push("name = ?"); params.push(name); }
+  if (email !== undefined) { fields.push("email = ?"); params.push(email); }
+  if (message !== undefined) { fields.push("message = ?"); params.push(message); }
+  if (fields.length === 0) return res.status(400).json({ ok: false, error: "Nothing to update" });
+
+  const sql = `UPDATE feedback SET ${fields.join(", ")} WHERE id = ?`;
+  params.push(id);
+  db.run(sql, params, function (err) {
+    if (err) return res.status(500).json({ ok: false, error: "DB update failed" });
+    if (this.changes === 0) return res.status(404).json({ ok: false, error: "Not found" });
+    return res.json({ ok: true });
+  });
 });
+
+// DELETE: Удаление сообщения
+app.delete("/api/feedback/:id", requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const sql = `DELETE FROM feedback WHERE id = ?`;
+  db.run(sql, [id], function (err) {
+    if (err) return res.status(500).json({ ok: false, error: "DB delete failed" });
+    if (this.changes === 0) return res.status(404).json({ ok: false, error: "Not found" });
+    return res.json({ ok: true });
+  });
+});
+
+app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));

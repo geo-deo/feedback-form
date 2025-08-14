@@ -4,7 +4,7 @@ const btnSpinner = document.getElementById("btnSpinner");
 const btnLabel = document.getElementById("btnLabel");
 
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
-const API_URL = "http://localhost:3001/api/feedback"; // твой backend
+const API_URL = "http://localhost:4000/api/feedback"; // твой backend
 
 function setError(id, hasError) {
   const input = document.getElementById(id);
