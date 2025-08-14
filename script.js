@@ -4,6 +4,7 @@ const btnSpinner = document.getElementById("btnSpinner");
 const btnLabel = document.getElementById("btnLabel");
 
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+const API_URL = "http://localhost:3001/api/feedback"; // твой backend
 
 function setError(id, hasError) {
   const input = document.getElementById(id);
@@ -46,9 +47,11 @@ function setLoading(isLoading) {
   if (isLoading) {
     btnSpinner.classList.remove("hidden");
     btnLabel.textContent = "Отправка...";
+    form.querySelector("button").disabled = true;
   } else {
     btnSpinner.classList.add("hidden");
     btnLabel.textContent = "Отправить";
+    form.querySelector("button").disabled = false;
   }
 }
 
@@ -60,13 +63,36 @@ form.addEventListener("submit", async (e) => {
 
   setLoading(true);
 
-  // Демонстрация "отправки"
-  await new Promise((r) => setTimeout(r, 700));
+  const formData = new FormData(form);
+  const payload = {
+    name: formData.get("name").trim(),
+    email: formData.get("email").trim(),
+    message: formData.get("message").trim(),
+  };
 
-  setLoading(false);
-  form.reset();
-  success.classList.remove("hidden");
-  success.scrollIntoView({ behavior: "smooth", block: "center" });
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data?.error || "Ошибка при отправке");
+    }
+
+    // Успех
+    form.reset();
+    success.textContent = `🎉 Спасибо! Ваше сообщение отправлено (ID: ${data.id})`;
+    success.classList.remove("hidden");
+    success.scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch (err) {
+    alert(`Ошибка: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
 });
 
 // live-валидация при вводе
