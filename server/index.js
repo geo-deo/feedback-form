@@ -1,4 +1,3 @@
-// server/index.js
 import express from "express";
 import cors from "cors";
 import crypto from "crypto";
@@ -26,7 +25,7 @@ app.use(cors({
 // Healthcheck
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// CREATE: Приём сообщений формы
+// CREATE
 app.post("/api/feedback", (req, res) => {
   const { name, email, message } = req.body || {};
   if (!name || !email || !message) {
@@ -47,21 +46,59 @@ app.post("/api/feedback", (req, res) => {
   });
 });
 
-// READ: Список сообщений
+// READ with search/filter/pagination
 app.get("/api/feedback", requireAdmin, (req, res) => {
-  const sql = `SELECT id, name, email, message, ip, userAgent, createdAt
-               FROM feedback ORDER BY datetime(createdAt) DESC`;
-  db.all(sql, [], (err, rows) => {
-    if (err) return res.status(500).json({ ok: false, error: "DB read failed" });
-    return res.json({ ok: true, items: rows });
+  const page  = Math.max(1, parseInt(req.query.page ?? "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit ?? "10", 10)));
+  const search   = (req.query.search ?? "").trim();
+  const dateFrom = (req.query.dateFrom ?? "").trim();
+  const dateTo   = (req.query.dateTo ?? "").trim();
+
+  const where = [];
+  const params = [];
+
+  if (search) {
+    where.push("(name LIKE ? OR email LIKE ? OR message LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+  if (dateFrom) { where.push("datetime(createdAt) >= datetime(?)"); params.push(dateFrom); }
+  if (dateTo)   { where.push("datetime(createdAt) <= datetime(?)"); params.push(dateTo); }
+
+  const whereSQL = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const offset = (page - 1) * limit;
+
+  const countSql = `SELECT COUNT(*) AS total FROM feedback ${whereSQL}`;
+  const dataSql  = `
+    SELECT id, name, email, message, ip, userAgent, createdAt
+    FROM feedback
+    ${whereSQL}
+    ORDER BY datetime(createdAt) DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  db.get(countSql, params, (err, cRow) => {
+    if (err) return res.status(500).json({ ok: false, error: "DB count failed" });
+    const total = cRow?.total ?? 0;
+
+    db.all(dataSql, [...params, limit, offset], (err2, rows) => {
+      if (err2) return res.status(500).json({ ok: false, error: "DB read failed" });
+      res.json({
+        ok: true,
+        data: rows,
+        items: rows, // для старого фронта
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      });
+    });
   });
 });
 
-// UPDATE: Редактирование сообщения (частично)
+// UPDATE
 app.patch("/api/feedback/:id", requireAdmin, (req, res) => {
   const { id } = req.params;
   const { name, email, message } = req.body || {};
-  // собираем динамический апдейт
   const fields = [];
   const params = [];
   if (name !== undefined) { fields.push("name = ?"); params.push(name); }
@@ -78,7 +115,7 @@ app.patch("/api/feedback/:id", requireAdmin, (req, res) => {
   });
 });
 
-// DELETE: Удаление сообщения
+// DELETE
 app.delete("/api/feedback/:id", requireAdmin, (req, res) => {
   const { id } = req.params;
   const sql = `DELETE FROM feedback WHERE id = ?`;
@@ -89,4 +126,4 @@ app.delete("/api/feedback/:id", requireAdmin, (req, res) => {
   });
 });
 
-app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

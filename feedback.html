@@ -35,6 +35,15 @@
 <body>
   <h1>Feedback Admin</h1>
 
+<div style="margin-bottom: 1em;">
+  <input id="search" placeholder="Search..." />
+  <input type="date" id="dateFrom" />
+  <input type="date" id="dateTo" />
+  <button onclick="loadData(1)">Apply</button>
+</div>
+
+<div id="pagination"></div>
+  
   <div class="bar">
     <span class="muted">API base:</span>
     <code id="apiBaseView" class="pill"></code>
@@ -64,19 +73,14 @@
   </table>
 
   <script>
-    // === CONFIG ===
     const API_BASE = localStorage.getItem('api_base') || 'http://localhost:3001';
     const TOKEN_KEY = 'admin_token';
 
     const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => document.querySelectorAll(sel);
 
-    const state = {
-      items: [],
-      editing: new Set(), // ids в режиме редактирования
-    };
+    const state = { items: [], editing: new Set() };
+    const ui = { page: 1, limit: 5, totalPages: 1 };
 
-    // === HELPERS ===
     function fmtDate(iso) {
       try {
         const d = new Date(iso);
@@ -90,34 +94,14 @@
       if (token) h['X-Admin-Token'] = token;
       return h;
     }
-    function setStatus(msg) {
-      $('#status').textContent = msg || '';
-    }
-
-    // === CRUD CALLS ===
-    async function loadFeedback() {
-      setStatus('Loading…');
-      try {
-        const res = await fetch(`${API_BASE}/api/feedback`, { headers: headersJson() });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || 'Failed to load');
-        state.items = data.items || [];
-        render();
-        setStatus(`Loaded ${state.items.length}`);
-      } catch (e) {
-        console.error(e);
-        $('#tbody').innerHTML = `<tr><td colspan="6" class="muted">Error: ${e.message}</td></tr>`;
-        setStatus('Error');
-      }
-    }
+    function setStatus(msg) { $('#status').textContent = msg || ''; }
 
     async function deleteFeedback(id) {
       if (!confirm('Удалить запись?')) return;
       setStatus('Deleting…');
       try {
         const res = await fetch(`${API_BASE}/api/feedback/${id}`, {
-          method: 'DELETE',
-          headers: headersJson(),
+          method: 'DELETE', headers: headersJson()
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || 'Delete failed');
@@ -125,66 +109,96 @@
         state.editing.delete(id);
         render();
         setStatus('Deleted');
-      } catch (e) {
-        alert('Delete failed: ' + e.message);
-        setStatus('Error');
-      }
+      } catch (e) { alert('Delete failed: ' + e.message); setStatus('Error'); }
     }
 
     async function updateFeedback(id, partial) {
       setStatus('Saving…');
       try {
         const res = await fetch(`${API_BASE}/api/feedback/${id}`, {
-          method: 'PATCH',
-          headers: headersJson(),
+          method: 'PATCH', headers: headersJson(),
           body: JSON.stringify(partial),
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || 'Update failed');
-
-        // локально обновим
         const idx = state.items.findIndex(x => x.id === id);
         if (idx >= 0) state.items[idx] = { ...state.items[idx], ...partial };
         state.editing.delete(id);
         render();
         setStatus('Saved');
+      } catch (e) { alert('Update failed: ' + e.message); setStatus('Error'); }
+    }
+
+    async function loadData(page = 1) {
+      ui.page = page;
+      const search = ($('#search')?.value || '').trim();
+      const dateFrom = $('#dateFrom')?.value || '';
+      const dateTo = $('#dateTo')?.value || '';
+
+      const qs = new URLSearchParams({
+        page: String(ui.page), limit: String(ui.limit),
+        search, dateFrom, dateTo
+      });
+
+      setStatus('Loading…');
+      try {
+        const res = await fetch(`${API_BASE}/api/feedback?${qs}`, { headers: headersJson() });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Failed to load');
+
+        state.items = data.data || data.items || [];
+        ui.totalPages = data.totalPages || 1;
+
+        render();
+        renderPagination();
+        setStatus(`Loaded ${state.items.length} (page ${ui.page}/${ui.totalPages})`);
       } catch (e) {
-        alert('Update failed: ' + e.message);
+        console.error(e);
+        $('#tbody').innerHTML = `<tr><td colspan="6" class="muted">Error: ${e.message}</td></tr>`;
         setStatus('Error');
       }
     }
 
-    // === UI ACTIONS ===
-    function enterEditMode(id) {
-      state.editing.add(id);
-      render();
-      // фокус на первом поле
-      const first = document.querySelector(`[data-id="${id}"] input, [data-id="${id}"] textarea`);
-      if (first) first.focus();
+    function renderPagination() {
+      const host = document.getElementById('pagination');
+      if (!host) return;
+      if (ui.totalPages <= 1) { host.innerHTML = ''; return; }
+      const { page, totalPages } = ui;
+      let html = `<div style="display:flex; gap:6px; align-items:center; margin:10px 0;">`;
+      html += `<button ${page<=1?'disabled':''} onclick="loadData(${page-1})">« Prev</button>`;
+      const pages = [];
+      for (let p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) pages.push(p);
+      }
+      let last = 0;
+      for (const p of pages) {
+        if (p - last > 1) html += `<span>…</span>`;
+        html += ` <button ${p===page?'disabled':''} onclick="loadData(${p})">${p}</button>`;
+        last = p;
+      }
+      html += ` <button ${page>=totalPages?'disabled':''} onclick="loadData(${page+1})">Next »</button>`;
+      html += `</div>`;
+      host.innerHTML = html;
     }
-    function cancelEdit(id) {
-      state.editing.delete(id);
-      render();
-    }
+
+    function enterEditMode(id) { state.editing.add(id); render(); }
+    function cancelEdit(id) { state.editing.delete(id); render(); }
     function saveRow(id) {
       const row = document.querySelector(`[data-id="${id}"]`);
       const name = row.querySelector('input[name="name"]').value.trim();
       const email = row.querySelector('input[name="email"]').value.trim();
       const message = row.querySelector('textarea[name="message"]').value.trim();
       if (!name || !email || !message) {
-        alert('Name, Email и Message обязательны');
-        return;
+        alert('Name, Email и Message обязательны'); return;
       }
       updateFeedback(id, { name, email, message });
     }
 
-    // === RENDER ===
     function render() {
       const rows = state.items.map(item => {
         const isEdit = state.editing.has(item.id);
         if (!isEdit) {
-          return `
-            <tr data-id="${item.id}">
+          return `<tr data-id="${item.id}">
               <td>${escapeHtml(item.name)}</td>
               <td>${escapeHtml(item.email)}</td>
               <td>${nl2br(escapeHtml(item.message))}</td>
@@ -199,11 +213,9 @@
                 <button class="btn primary" onclick="enterEditMode('${item.id}')">Edit</button>
                 <button class="btn danger" onclick="deleteFeedback('${item.id}')">Delete</button>
               </td>
-            </tr>
-          `;
+            </tr>`;
         } else {
-          return `
-            <tr data-id="${item.id}">
+          return `<tr data-id="${item.id}">
               <td><input name="name" type="text" value="${attr(item.name)}"></td>
               <td><input name="email" type="email" value="${attr(item.email)}"></td>
               <td><textarea name="message">${attr(item.message)}</textarea></td>
@@ -218,54 +230,39 @@
                 <button class="btn primary" onclick="saveRow('${item.id}')">Save</button>
                 <button class="btn" onclick="cancelEdit('${item.id}')">Cancel</button>
               </td>
-            </tr>
-          `;
+            </tr>`;
         }
       }).join('');
       $('#tbody').innerHTML = rows || `<tr><td colspan="6" class="muted">Empty</td></tr>`;
     }
 
-    // === ESCAPE HELPERS ===
     function escapeHtml(s) {
-      return String(s ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
-    function attr(s) {
-      // для значений в атрибутах (input/textarea value)
-      return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    }
-    function nl2br(s) {
-      return String(s).replace(/\n/g, '<br>');
-    }
+    function attr(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+    function nl2br(s) { return String(s).replace(/\n/g, '<br>'); }
 
-    // === INIT ===
     (function init() {
-      // UI: базовый адрес и токен
       $('#apiBaseView').textContent = API_BASE;
       $('#adminToken').value = localStorage.getItem(TOKEN_KEY) || '';
-
       $('#saveTokenBtn').addEventListener('click', () => {
         localStorage.setItem(TOKEN_KEY, $('#adminToken').value.trim());
-        setStatus('Token saved');
-        loadFeedback();
+        setStatus('Token saved'); loadData(1);
       });
       $('#clearTokenBtn').addEventListener('click', () => {
         localStorage.removeItem(TOKEN_KEY);
         $('#adminToken').value = '';
-        setStatus('Token cleared');
-        loadFeedback();
+        setStatus('Token cleared'); loadData(1);
       });
-
-      loadFeedback();
+      loadData(1);
     })();
 
-    // Экспорт функций в глобальную область для inline onClick
     window.enterEditMode = enterEditMode;
     window.cancelEdit = cancelEdit;
     window.saveRow = saveRow;
     window.deleteFeedback = deleteFeedback;
+    window.loadData = loadData;
   </script>
 </body>
 </html>
