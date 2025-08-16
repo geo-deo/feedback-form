@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Форма обратной связи</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- оставим на случай будущих переопределений -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -19,8 +18,8 @@
       🎉 Спасибо! Ваше сообщение отправлено (демо).
     </div>
 
-    <form id="contactForm" novalidate
-          class="bg-white shadow-md rounded-xl p-6 md:p-8 border border-gray-100">
+    <!-- Feedback form -->
+    <form id="contactForm" novalidate class="bg-white shadow-md rounded-xl p-6 md:p-8 border border-gray-100">
       <!-- Имя -->
       <div class="mb-5">
         <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Имя</label>
@@ -56,10 +55,83 @@
       </button>
     </form>
 
-    <p class="text-center text-xs text-gray-400 mt-4">
-      Демоверсия: данные никуда не отправляются.
-    </p>
-  </main>
+  <section class="ai-chat mt-12 bg-white shadow-md rounded-xl p-6 md:p-8 border border-gray-100">
+  <h2 class="text-xl font-semibold mb-4">AI-чат</h2>
+
+  <form id="aiChatForm" onsubmit="event.preventDefault(); aiAsk();" class="flex gap-3 mb-4">
+    <input id="aiQuestion" type="text" placeholder="Задай вопрос..." autocomplete="off" autofocus />
+    <button id="aiSend" type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition">
+      Спросить
+    </button>
+  </form>
+
+  <div id="aiAnswer" class="min-h-[56px] whitespace-pre-wrap border border-gray-200 bg-gray-50 p-4 rounded-lg text-gray-800"></div>
+</section>
+
+<style>
+  /* ЖЁСТКИЕ ПРАВИЛА — перебивают глобальные стили из style.css */
+  #aiQuestion {
+    display: block !important;
+    width: 100% !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    padding: 0 12px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    outline: none !important;
+    background: #fff !important;
+    color: #111827 !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+  #aiQuestion:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.2) !important;
+  }
+</style>
+
+<script>
+  async function aiAsk() {
+    const input = document.getElementById('aiQuestion');
+    const btn   = document.getElementById('aiSend');
+    const box   = document.getElementById('aiAnswer');
+
+    const q = (input.value || '').trim();
+    if (!q) { input.focus(); return; }
+
+    input.disabled = true; btn.disabled = true;
+    box.textContent = 'Запрашиваю ответ…';
+
+    try {
+      const res = await fetch('http://localhost:3001/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q })
+      });
+
+      if (!res.ok) {
+        // Покажем реальный текст ошибки (например, 401/500/CORS)
+        const text = await res.text().catch(() => '');
+        throw new Error('HTTP ' + res.status + (text ? (' — ' + text) : ''));
+      }
+
+      const data = await res.json();
+      box.textContent = data.answer || data.error || 'Неизвестная ошибка';
+    } catch (e) {
+      console.error('[AI CHAT] Error:', e);
+      box.textContent = 'Ошибка: ' + (e?.message || e);
+    } finally {
+      input.disabled = false; btn.disabled = false;
+      input.value = ''; input.focus();
+    }
+  }
+
+  // На случай борьбы с другими автофокусами
+  window.addEventListener('load', () => {
+    const el = document.getElementById('aiQuestion');
+    if (el) el.focus();
+  });
+</script>
 
   <script src="script.js"></script>
 </body>
