@@ -3,7 +3,8 @@ import cors from "cors";
 import crypto from "crypto";
 import db from "./db.js";
 import "dotenv/config";
-import fetch from "node-fetch";
+import { v4 as uuidv4 } from "uuid";
+import OpenAI from "openai";
 
 function requireAdmin(req, res, next) {
   const token = req.header("X-Admin-Token") || "";
@@ -23,44 +24,65 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "X-Admin-Token", "Authorization"]
 }));
 
+// OpenAI client
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const OPENAI_MODEL = "gpt-4.1-mini";
+
 // Healthcheck
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// AI Chat route
-app.post("/api/ask", async (req, res) => {
-  const { question } = req.body;
-
-  if (!question) {
-    return res.status(400).json({ ok: false, error: "Question is required" });
+// Chat route with history
+app.post("/api/chat", (req, res) => {
+  const { sessionId = uuidv4(), message } = req.body || {};
+  if (!message || !message.trim()) {
+    return res.status(400).json({ ok: false, error: "Message is required" });
   }
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: question }],
-      }),
+  const now = new Date().toISOString();
+  const insertSql = `INSERT INTO chat_messages (id, sessionId, role, content, createdAt) VALUES (?, ?, ?, ?, ?)`;
+
+  db.run(insertSql, [uuidv4(), sessionId, "user", message.trim(), now], (err) => {
+    if (err) return res.status(500).json({ ok: false, error: "DB insert failed (user)" });
+
+    const loadSql = `SELECT role, content FROM chat_messages WHERE sessionId = ? ORDER BY datetime(createdAt) DESC LIMIT 20`;
+    db.all(loadSql, [sessionId], async (selErr, rows) => {
+      if (selErr) return res.status(500).json({ ok: false, error: "DB read failed (history)" });
+
+      const history = rows.reverse().map(r => ({ role: r.role, content: r.content }));
+      const messages = [
+        { role: "system", content: "Отвечай кратко и дружелюбно." },
+        ...history
+      ];
+
+      try {
+        const completion = await client.chat.completions.create({
+          model: OPENAI_MODEL,
+          messages,
+          temperature: 0.7,
+        });
+
+        const answer = completion.choices?.[0]?.message?.content?.trim() || "🤖 (нет ответа)";
+
+        db.run(insertSql, [uuidv4(), sessionId, "assistant", answer, new Date().toISOString()], (insErr) => {
+          if (insErr) console.error("DB insert failed (assistant)", insErr);
+        });
+
+        return res.json({ ok: true, answer, reply: answer, sessionId });
+      } catch (e) {
+        console.error("OpenAI error", e);
+        return res.status(500).json({
+          ok: false,
+          error: "OpenAI request failed",
+          answer: "⚠️ Ошибка при запросе к модели",
+          reply: "⚠️ Ошибка при запросе к модели",
+          sessionId
+        });
+      }
     });
-
-    const data = await response.json();
-
-    if (!data.choices || !data.choices[0]) {
-      throw new Error("No response from OpenAI");
-    }
-
-    res.json({ ok: true, answer: data.choices[0].message.content });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ ok: false, error: "OpenAI request failed" });
-  }
+  });
 });
 
-// CREATE
+// FEEDBACK CRUD
 app.post("/api/feedback", (req, res) => {
   const { name, email, message } = req.body || {};
   if (!name || !email || !message) {
@@ -81,7 +103,6 @@ app.post("/api/feedback", (req, res) => {
   });
 });
 
-// READ with search/filter/pagination
 app.get("/api/feedback", requireAdmin, (req, res) => {
   const page  = Math.max(1, parseInt(req.query.page ?? "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit ?? "10", 10)));
@@ -130,7 +151,6 @@ app.get("/api/feedback", requireAdmin, (req, res) => {
   });
 });
 
-// UPDATE
 app.patch("/api/feedback/:id", requireAdmin, (req, res) => {
   const { id } = req.params;
   const { name, email, message } = req.body || {};
@@ -150,7 +170,6 @@ app.patch("/api/feedback/:id", requireAdmin, (req, res) => {
   });
 });
 
-// DELETE
 app.delete("/api/feedback/:id", requireAdmin, (req, res) => {
   const { id } = req.params;
   const sql = `DELETE FROM feedback WHERE id = ?`;
@@ -159,6 +178,25 @@ app.delete("/api/feedback/:id", requireAdmin, (req, res) => {
     if (this.changes === 0) return res.status(404).json({ ok: false, error: "Not found" });
     return res.json({ ok: true });
   });
+});
+
+// --- Новый эндпоинт /api/ask для простого вызова OpenAI ---
+app.post("/api/ask", async (req, res) => {
+  const { question } = req.body || {};
+  if (!question) return res.status(400).json({ error: "Вопрос не передан" });
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: OPENAI_MODEL,
+      messages: [{ role: "user", content: question }],
+    });
+
+    const answer = completion.choices[0].message.content;
+    res.json({ answer });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Ошибка при запросе к OpenAI" });
+  }
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
