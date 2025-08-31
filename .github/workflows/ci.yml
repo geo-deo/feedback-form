@@ -20,7 +20,7 @@ jobs:
           node-version: 18
           cache: npm
 
-      # Корневые зависимости (если нужны)
+      # ======== Root deps (если есть) ========
       - name: Install root deps
         run: npm ci
 
@@ -40,7 +40,7 @@ jobs:
         if: ${{ hashFiles('feedbackFormAPI/package.json') != '' }}
         run: npx wait-on http://localhost:3001/api/health -t 90000
 
-      - name: Smoke test
+      - name: Smoke test API
         if: ${{ hashFiles('feedbackFormAPI/package.json') != '' }}
         run: curl -s http://localhost:3001/api/health | grep -q '"ok":true'
 
@@ -53,3 +53,14 @@ jobs:
       - name: Stop server
         if: ${{ always() && hashFiles('feedbackFormAPI/package.json') != '' }}
         run: kill $(cat server_pid.txt) || true
+
+      # ======== Frontend: feedbackFormApp ========
+      - name: Install frontend deps
+        if: ${{ hashFiles('feedbackFormApp/package.json') != '' }}
+        run: npm ci
+        working-directory: feedbackFormApp
+
+      - name: Build frontend
+        if: ${{ hashFiles('feedbackFormApp/package.json') != '' }}
+        run: npm run build
+        working-directory: feedbackFormApp
