@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  api:
+    build: ./feedbackFormAPI
+    container_name: feedback-api
+    # Внутри контейнера сервер слушает 3001 → наружу даём 4000
+    ports:
+      - "4000:3001"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3001/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build: ./feedbackFormApp
+    container_name: feedback-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

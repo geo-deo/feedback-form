@@ -1,0 +1,13 @@
+# Папки
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+
+# Git
+.git
+.gitignore
+
+# Разное
+*.md
+.env
