@@ -3,77 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Диагностика кликов и API</title>
+  <title>Форма обратной связи</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>">
 </head>
-<body class="bg-gray-100 min-h-screen">
-  <main class="max-w-xl mx-auto p-6 space-y-6">
-    <h1 class="text-2xl font-semibold">Диагностика кликов и API</h1>
-
-    <section class="bg-white shadow rounded-xl p-6 border border-gray-100">
-      <div id="status" class="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded p-2 whitespace-pre-wrap"></div>
-
-      <hr class="my-4"/>
-
-      <div class="flex gap-3 items-center">
-        <input id="chatInput" type="text" placeholder="Напишите сообщение..." class="flex-1 rounded-lg border border-gray-300 px-3 py-2">
-        <button id="chatSend" type="button" class="px-5 py-2 bg-blue-600 text-white rounded-lg">
-          Отправить
-        </button>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
+  <main class="w-full max-w-md bg-white rounded-2xl shadow p-6 space-y-6">
+    <h1 class="text-2xl font-bold text-gray-800">Свяжитесь с нами</h1>
+    <form id="contactForm" class="space-y-4">
+      <!-- Имя -->
+      <div>
+        <label for="name" class="block text-sm font-medium text-gray-700">Имя</label>
+        <input id="name" name="name" type="text"
+               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+        <p data-error-for="name" class="hidden text-red-600 text-sm mt-1">Введите не менее 2 символов</p>
       </div>
 
-      <div id="chatBox" class="h-56 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50 mt-4"></div>
-    </section>
+      <!-- Email -->
+      <div>
+        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+        <input id="email" name="email" type="email"
+               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+        <p data-error-for="email" class="hidden text-red-600 text-sm mt-1">Введите корректный email</p>
+      </div>
+
+      <!-- Сообщение -->
+      <div>
+        <label for="message" class="block text-sm font-medium text-gray-700">Сообщение</label>
+        <textarea id="message" name="message" rows="4"
+                  class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+        <p data-error-for="message" class="hidden text-red-600 text-sm mt-1">Введите не менее 5 символов</p>
+      </div>
+
+      <!-- Кнопка -->
+      <button type="submit"
+              class="w-full flex justify-center items-center gap-2 rounded-md bg-indigo-600 py-2 px-4 text-white font-medium shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+        <span id="btnSpinner" class="hidden animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+        <span id="btnLabel">Отправить</span>
+      </button>
+    </form>
+
+    <!-- Сообщение об успехе -->
+    <div id="success" class="hidden p-3 rounded-md bg-green-100 text-green-800 text-sm"></div>
   </main>
 
-  <script>
-  (function () {
-    const st  = document.getElementById('status');
-    const log = (...a)=>{ console.log('[DIAG]', ...a); st.textContent += a.map(String).join(' ')+'\n'; };
-    const box = document.getElementById('chatBox');
-    const input = document.getElementById('chatInput');
-    const btn   = document.getElementById('chatSend');
-
-    log('loaded', new Date().toISOString());
-    log('bindings:', JSON.stringify({ hasInput:!!input, hasBtn:!!btn }));
-
-    function bubble(text, role){
-      const d = document.createElement('div');
-      d.className = 'max-w-[80%] px-3 py-2 rounded mb-2 ' + 
-        (role==='user' ? 'bg-blue-600 text-white ml-auto' : 'bg-gray-200 text-gray-800 mr-auto');
-      d.textContent = text; 
-      box.appendChild(d); 
-      box.scrollTop = box.scrollHeight;
-    }
-
-    async function send(e){
-      if (e) e.preventDefault();
-      const q = (input.value||'').trim();
-      if(!q){ input.focus(); return; }
-      bubble(q,'user'); 
-      input.value='';
-      log('send', JSON.stringify({message:q}));
-
-      try{
-        const r = await fetch("http://localhost:3001/api/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: q })
-        });
-
-        if(!r.ok) throw new Error("HTTP "+r.status);
-        const data = await r.json();
-        bubble(data.answer || "⚠️ пустой ответ", 'assistant');
-      }catch(e){
-        log('chat error:', e.message||e);
-        bubble('Ошибка: '+(e.message||e), 'assistant');
-      }
-    }
-
-    btn.addEventListener('click', send);
-    input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ send(e); }});
-  })();
-  </script>
+  <script src="./script.js"></script>
 </body>
 </html>
