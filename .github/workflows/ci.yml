@@ -19,16 +19,19 @@ jobs:
         with:
           node-version: 18
           cache: npm
+          # lock-файл лежит в подпапке API
+          cache-dependency-path: feedbackFormAPI/package-lock.json
 
       # ===== Backend: feedbackFormAPI =====
       - name: Install API deps
-        run: npm install
+        run: npm ci
         working-directory: feedbackFormAPI
 
       - name: Start API server (background)
+        working-directory: feedbackFormAPI
         run: |
-          node feedbackFormAPI/index.js > server.log 2>&1 &
-          echo $! > server_pid.txt
+          node server.js > ../server.log 2>&1 &
+          echo $! > ../server_pid.txt
 
       - name: Wait for healthcheck
         run: npx wait-on http://localhost:3001/api/health -t 90000
@@ -47,20 +50,24 @@ jobs:
         run: |
           if [ -f server_pid.txt ]; then kill $(cat server_pid.txt) || true; fi
 
-      # ===== Frontend: feedbackFormApp =====
+      # ===== Frontend: feedbackFormApp (опционально, если есть) =====
       - name: Install frontend deps
+        if: ${{ hashFiles('feedbackFormApp/package.json') != '' }}
         run: npm install
         working-directory: feedbackFormApp
 
       - name: Build frontend
+        if: ${{ hashFiles('feedbackFormApp/package.json') != '' }}
         run: npm run build
         working-directory: feedbackFormApp
 
-      # ===== Admin: feedbackFormServiceZone =====
+      # ===== Admin: feedbackFormServiceZone (опционально, если есть) =====
       - name: Install admin deps
+        if: ${{ hashFiles('feedbackFormServiceZone/package.json') != '' }}
         run: npm install
         working-directory: feedbackFormServiceZone
 
       - name: Build admin
+        if: ${{ hashFiles('feedbackFormServiceZone/package.json') != '' }}
         run: npm run build
         working-directory: feedbackFormServiceZone
