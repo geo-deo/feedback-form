@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import db from "./server/db.js";   // твоя SQLite
+import db from "./db.js";   // твоя SQLite
 
 const app = express();
 app.use(express.json());
