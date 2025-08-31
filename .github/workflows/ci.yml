@@ -2,14 +2,15 @@ name: CI
 
 on:
   push:
-    branches: ["**"]        # запускаем на любом пуше, в т.ч. no-chat
+    branches: ["**"]
   pull_request:
-    branches: ["**"]        # и на любом PR
-  workflow_dispatch:         # кнопка Run workflow в Actions
+    branches: ["**"]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -21,8 +22,18 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # В проекте пока нет тестов — просто проверим, что всё ок
-      - name: Sanity check
+      - name: Start server (background)
         run: |
-          node -v
-          echo "OK"
+          node server/index.js &
+          echo $! > server_pid.txt
+
+      - name: Wait for healthcheck
+        run: npx wait-on http://localhost:3001/api/health
+
+      - name: Smoke test
+        run: curl -s http://localhost:3001/api/health | grep -q '"ok":true'
+
+      - name: Stop server
+        if: always()
+        run: |
+          kill $(cat server_pid.txt) || true
