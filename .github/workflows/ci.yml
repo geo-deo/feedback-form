@@ -20,40 +20,20 @@ jobs:
           node-version: 18
           cache: npm
 
-      # ===== Root (если есть зависимости в корне) =====
-      - name: Install root deps (lockfile)
-        if: ${{ hashFiles('package-lock.json') != '' }}
-        run: npm ci
-      - name: Install root deps (no lockfile)
-        if: ${{ hashFiles('package-lock.json') == '' }}
-        run: npm install
-
       # ===== Backend: feedbackFormAPI =====
-      - name: List API dir (debug)
-        run: ls -la feedbackFormAPI
-
-      - name: Install API deps (lockfile)
-        if: ${{ hashFiles('feedbackFormAPI/package-lock.json') != '' }}
-        run: npm ci
-        working-directory: feedbackFormAPI
-
-      - name: Install API deps (no lockfile)
-        if: ${{ hashFiles('feedbackFormAPI/package-lock.json') == '' }}
+      - name: Install API deps
         run: npm install
         working-directory: feedbackFormAPI
 
       - name: Start API server (background)
-        if: ${{ hashFiles('feedbackFormAPI/package.json') != '' }}
         run: |
           node feedbackFormAPI/index.js > server.log 2>&1 &
           echo $! > server_pid.txt
 
       - name: Wait for healthcheck
-        if: ${{ hashFiles('feedbackFormAPI/package.json') != '' }}
         run: npx wait-on http://localhost:3001/api/health -t 90000
 
       - name: Smoke test
-        if: ${{ hashFiles('feedbackFormAPI/package.json') != '' }}
         run: curl -s http://localhost:3001/api/health | grep -q '"ok":true'
 
       - name: Show server log (debug)
@@ -68,33 +48,19 @@ jobs:
           if [ -f server_pid.txt ]; then kill $(cat server_pid.txt) || true; fi
 
       # ===== Frontend: feedbackFormApp =====
-      - name: Install frontend deps (lockfile)
-        if: ${{ hashFiles('feedbackFormApp/package-lock.json') != '' }}
-        run: npm ci
-        working-directory: feedbackFormApp
-
-      - name: Install frontend deps (no lockfile)
-        if: ${{ hashFiles('feedbackFormApp/package-lock.json') == '' }}
+      - name: Install frontend deps
         run: npm install
         working-directory: feedbackFormApp
 
       - name: Build frontend
-        if: ${{ hashFiles('feedbackFormApp/package.json') != '' }}
         run: npm run build
         working-directory: feedbackFormApp
 
       # ===== Admin: feedbackFormServiceZone =====
-      - name: Install admin deps (lockfile)
-        if: ${{ hashFiles('feedbackFormServiceZone/package-lock.json') != '' }}
-        run: npm ci
-        working-directory: feedbackFormServiceZone
-
-      - name: Install admin deps (no lockfile)
-        if: ${{ hashFiles('feedbackFormServiceZone/package-lock.json') == '' }}
+      - name: Install admin deps
         run: npm install
         working-directory: feedbackFormServiceZone
 
       - name: Build admin
-        if: ${{ hashFiles('feedbackFormServiceZone/package.json') != '' }}
         run: npm run build
         working-directory: feedbackFormServiceZone
