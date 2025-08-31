@@ -14,11 +14,8 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-const app = express();
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 3001; // локально 3001, на Render — их порт
+app.listen(PORT, () => console.log("API listening on", PORT));
 
 app.use(express.json());
 app.use(cors({
