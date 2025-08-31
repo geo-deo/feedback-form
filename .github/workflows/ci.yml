@@ -2,25 +2,27 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["**"]        # запускаем на любом пуше, в т.ч. no-chat
   pull_request:
-    branches: [ "main" ]
+    branches: ["**"]        # и на любом PR
+  workflow_dispatch:         # кнопка Run workflow в Actions
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install deps
+        run: npm ci
 
-    - name: Run tests
-      run: npm test
+      # В проекте пока нет тестов — просто проверим, что всё ок
+      - name: Sanity check
+        run: |
+          node -v
+          echo "OK"
