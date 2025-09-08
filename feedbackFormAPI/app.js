@@ -1,6 +1,8 @@
+// server/app.js
 import express from "express";
 import cors from "cors";
-import db from "./db.js";   // твоя SQLite
+import prisma from "./db.js"; // теперь это PrismaClient
+import { v4 as uuidv4 } from "uuid";
 
 const app = express();
 app.use(express.json());
@@ -10,109 +12,117 @@ app.use(cors({ origin: "*" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 // POST /api/feedback — создать запись
-app.post("/api/feedback", (req, res) => {
-  const { name, email, message } = req.body || {};
-  if (!name || !email || !message) {
-    return res.status(400).json({ ok: false, error: "Missing required fields" });
-  }
-
-  const id = Date.now().toString();
-  const createdAt = new Date().toISOString();
-  const ip = req.ip;
-  const userAgent = req.get("User-Agent");
-
-  db.run(
-    `INSERT INTO feedback (id, name, email, message, ip, userAgent, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, name, email, message, ip, userAgent, createdAt],
-    (err) => {
-      if (err) return res.status(500).json({ ok: false, error: "DB error" });
-      res.json({ ok: true, id, name, email, message, createdAt });
+app.post("/api/feedback", async (req, res) => {
+  try {
+    const { name, email, message } = req.body || {};
+    if (!name || !email || !message) {
+      return res.status(400).json({ ok: false, error: "Missing required fields" });
     }
-  );
+
+    const feedback = await prisma.feedback.create({
+      data: {
+        id: uuidv4(),
+        name,
+        email,
+        message,
+        ip: req.ip,
+        userAgent: req.get("User-Agent"),
+      },
+    });
+
+    res.json({ ok: true, feedback });
+  } catch (error) {
+    console.error("DB error:", error);
+    res.status(500).json({ ok: false, error: "DB error" });
+  }
 });
 
 // GET /api/feedback — список с фильтрацией + пагинацией
-app.get("/api/feedback", (req, res) => {
-  const { page = 1, limit = 10, search = "", dateFrom, dateTo } = req.query;
-  const offset = (page - 1) * limit;
+app.get("/api/feedback", async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = "", dateFrom, dateTo } = req.query;
+    const skip = (page - 1) * limit;
 
-  let where = [];
-  let params = [];
-
-  if (search) {
-    where.push("(name LIKE ? OR email LIKE ? OR message LIKE ?)");
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-  }
-  if (dateFrom) {
-    where.push("datetime(createdAt) >= datetime(?)");
-    params.push(dateFrom);
-  }
-  if (dateTo) {
-    where.push("datetime(createdAt) <= datetime(?)");
-    params.push(dateTo);
-  }
-
-  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-
-  db.all(
-    `SELECT * FROM feedback ${whereSql} ORDER BY datetime(createdAt) DESC LIMIT ? OFFSET ?`,
-    [...params, limit, offset],
-    (err, rows) => {
-      if (err) return res.status(500).json({ ok: false, error: "DB error" });
-
-      db.get(
-        `SELECT COUNT(*) as count FROM feedback ${whereSql}`,
-        params,
-        (err2, row) => {
-          if (err2) return res.status(500).json({ ok: false, error: "DB error" });
-
-          const total = row.count;
-          const totalPages = Math.ceil(total / limit);
-
-          res.json({
-            ok: true,
-            items: rows,
-            total,
-            totalPages,
-            page: Number(page),
-          });
-        }
-      );
+    const where = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { message: { contains: search, mode: "insensitive" } },
+      ];
     }
-  );
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateTo) where.createdAt.lte = new Date(dateTo);
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.feedback.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: Number(skip),
+        take: Number(limit),
+      }),
+      prisma.feedback.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      ok: true,
+      items,
+      total,
+      totalPages,
+      page: Number(page),
+    });
+  } catch (error) {
+    console.error("DB error:", error);
+    res.status(500).json({ ok: false, error: "DB error" });
+  }
 });
 
 // PATCH /api/feedback/:id — обновить запись
-app.patch("/api/feedback/:id", (req, res) => {
-  const { id } = req.params;
-  const { name, email, message } = req.body || {};
+app.patch("/api/feedback/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, message } = req.body || {};
 
-  db.run(
-    `UPDATE feedback SET name=?, email=?, message=? WHERE id=?`,
-    [name, email, message, id],
-    function (err) {
-      if (err) return res.status(500).json({ ok: false, error: "DB error" });
-      if (this.changes === 0) return res.status(404).json({ ok: false, error: "Not found" });
+    const feedback = await prisma.feedback.update({
+      where: { id },
+      data: { name, email, message },
+    });
 
-      res.json({ ok: true, id, name, email, message });
+    res.json({ ok: true, feedback });
+  } catch (error) {
+    if (error.code === "P2025") {
+      return res.status(404).json({ ok: false, error: "Not found" });
     }
-  );
+    console.error("DB error:", error);
+    res.status(500).json({ ok: false, error: "DB error" });
+  }
 });
 
 // DELETE /api/feedback/:id — удалить запись
-app.delete("/api/feedback/:id", (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM feedback WHERE id=?`, [id], function (err) {
-    if (err) return res.status(500).json({ ok: false, error: "DB error" });
-    if (this.changes === 0) return res.status(404).json({ ok: false, error: "Not found" });
+app.delete("/api/feedback/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.feedback.delete({ where: { id } });
+
     res.json({ ok: true, id });
-  });
+  } catch (error) {
+    if (error.code === "P2025") {
+      return res.status(404).json({ ok: false, error: "Not found" });
+    }
+    console.error("DB error:", error);
+    res.status(500).json({ ok: false, error: "DB error" });
+  }
 });
 
 // Root
 app.get("/", (_req, res) => {
-  res.send("✅ Feedback API with SQLite is running 🚀");
+  res.send("✅ Feedback API with PostgreSQL + Prisma is running 🚀");
 });
 
 export default app;
