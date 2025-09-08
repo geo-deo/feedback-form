@@ -3,11 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Форма обратной связи</title>
+  <title>Форма обратной связи + AI-чат</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ChatUI -->
+  <link rel="stylesheet" href="https://unpkg.com/chatui/dist/index.css" />
+  <script src="https://unpkg.com/chatui/dist/index.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
   <main class="w-full max-w-md bg-white rounded-2xl shadow p-6 space-y-6">
+    
+    <!-- Контейнер для чата -->
+    <div id="chat-root" style="height: 400px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px;"></div>
+
+    <!-- Форма обратной связи -->
     <h1 class="text-2xl font-bold text-gray-800">Свяжитесь с нами</h1>
     <form id="contactForm" class="space-y-4">
       <!-- Имя -->
@@ -46,11 +55,14 @@
     <div id="success" class="hidden p-3 rounded-md bg-green-100 text-green-800 text-sm"></div>
   </main>
 
+  <!-- Конфиг -->
   <script src="./config.js"></script>
-<script>
-  const API_BASE = window.APP_CONFIG.API_BASE;
-</script>
+  <script>
+    const API_BASE = window.APP_CONFIG.API_BASE;
+  </script>
 
+  <!-- Скрипты -->
+  <script src="./chat.js"></script>
   <script src="./script.js"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@chatui/core": "^3.1.0",
     "dotenv": "^17.2.1",
     "sqlite3": "^5.1.7"
   }

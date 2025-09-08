@@ -3,13 +3,46 @@ import express from "express";
 import cors from "cors";
 import prisma from "./db.js"; // теперь это PrismaClient
 import { v4 as uuidv4 } from "uuid";
+import OpenAI from "openai";
 
 const app = express();
 app.use(express.json());
 app.use(cors({ origin: "*" }));
 
+// Инициализация OpenAI
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 // Healthcheck
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+// ===== AI Chat Endpoint =====
+app.post("/api/ai-chat", async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: "No message provided" });
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+  {
+    role: "system",
+    content: "Ты — дружелюбный ассистент. ВСЕГДА отвечай на том же языке, на котором был задан вопрос пользователем."
+  },
+  { role: "user", content: message },
+],
+
+    });
+
+    res.json({ reply: completion.choices[0].message.content });
+  } catch (err) {
+    console.error("AI error:", err);
+    res.status(500).json({ error: "AI request failed" });
+  }
+});
+
+// ===== Feedback Endpoints =====
 
 // POST /api/feedback — создать запись
 app.post("/api/feedback", async (req, res) => {
@@ -107,9 +140,7 @@ app.patch("/api/feedback/:id", async (req, res) => {
 app.delete("/api/feedback/:id", async (req, res) => {
   try {
     const { id } = req.params;
-
     await prisma.feedback.delete({ where: { id } });
-
     res.json({ ok: true, id });
   } catch (error) {
     if (error.code === "P2025") {
@@ -122,7 +153,7 @@ app.delete("/api/feedback/:id", async (req, res) => {
 
 // Root
 app.get("/", (_req, res) => {
-  res.send("✅ Feedback API with PostgreSQL + Prisma is running 🚀");
+  res.send("✅ Feedback API with PostgreSQL + Prisma + OpenAI is running 🚀");
 });
 
 export default app;
