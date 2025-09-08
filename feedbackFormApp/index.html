@@ -36,10 +36,9 @@
 <body>
   <div class="frame" role="main">
 
-    <!-- 🔹 Блок авторизации -->
+    <!-- 🔹 Авторизация -->
     <div id="authSection" class="auth">
       <div class="auth-logo">
-        <!-- ✅ Новая иконка чата -->
         <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="none" stroke="#4f46e5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
@@ -67,11 +66,12 @@
     </div>
   </div>
 
+  <!-- 🔹 Firebase + логика -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    // ⚡ ВСТАВЬ СВОЙ КОНФИГ
+    // ⚡ Вставь свой конфиг
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -105,7 +105,7 @@
     tabSignin.addEventListener("click", ()=>setMode("signin"));
     tabSignup.addEventListener("click", ()=>setMode("signup"));
 
-    // Авторизация
+    // Авторизация / Регистрация
     authBtn.addEventListener("click", async () => {
       const email = document.getElementById("authEmail").value;
       const password = document.getElementById("authPassword").value;

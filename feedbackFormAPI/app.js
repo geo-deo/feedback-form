@@ -182,6 +182,19 @@ app.get("/api/secure", verifyToken, (req, res) => {
   });
 });
 
+// POST /api/login — авторизация
+app.post("/api/login", (req, res) => {
+  const { email, password } = req.body || {};
+
+  // пока что захардкодим одного пользователя
+  if (email === "admin@test.com" && password === "123456") {
+    return res.json({ ok: true, token: "fake-jwt-token" });
+  }
+
+  res.status(401).json({ ok: false, error: "Invalid credentials" });
+});
+
+
 // Root
 app.get("/", (_req, res) => {
   res.send("✅ Feedback API with PostgreSQL + Prisma + OpenAI is running 🚀");
