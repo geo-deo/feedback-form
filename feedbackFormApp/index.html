@@ -12,7 +12,6 @@
     html,body{height:100%;margin:0;font-family:Inter,Segoe UI,system-ui,-apple-system,Roboto,"Helvetica Neue",Arial;}
     body{background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
     .frame{width:420px;height:640px;background:var(--card);border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.08);display:flex;flex-direction:column;overflow:hidden;}
-    .header{padding:16px;border-bottom:1px solid #eef2ff;color:#111;font-weight:600;text-align:center}
     .messages{flex:1;padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px;}
     .msg{max-width:78%;padding:10px 12px;border-radius:12px;box-shadow:0 1px 0 rgba(0,0,0,0.02);line-height:1.35;font-size:14px}
     .msg.left{align-self:flex-start;background:var(--bubble-bot);border:1px solid #f1f5f9}
@@ -21,7 +20,7 @@
     .composer input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid #e6e9ef;font-size:14px}
     .composer button{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
     .typing{font-style:italic;color:var(--muted);font-size:13px;}
-    .auth{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;gap:12px;}
+    .auth{flex:1;display:flex;flex-direction:column;align-items:center;padding:32px;gap:12px;}
     .auth input{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px}
     .auth button{width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;transition:0.2s;}
     .auth button:hover{opacity:0.9}
@@ -30,7 +29,7 @@
     .tab.active{color:var(--accent);border-bottom:2px solid var(--accent);}
     .status{font-size:13px;color:var(--muted);margin-top:8px;text-align:center;}
     .user-bar{padding:12px;text-align:center;font-size:13px;color:var(--muted);border-bottom:1px solid #f3f4f6;}
-    .auth-logo{display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:20px;gap:8px;}
+    .auth-logo{margin-top:40px;margin-bottom:20px;display:flex;flex-direction:column;align-items:center;gap:8px;}
     .logo-text{font-size:16px;font-weight:600;color:var(--accent);}
   </style>
 </head>
@@ -45,7 +44,6 @@
         </svg>
         <div class="logo-text">AI Chat</div>
       </div>
-
 
       <div class="tabs">
         <div id="tabSignin" class="tab active">Sign In</div>
