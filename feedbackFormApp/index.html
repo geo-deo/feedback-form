@@ -30,14 +30,23 @@
     .tab.active{color:var(--accent);border-bottom:2px solid var(--accent);}
     .status{font-size:13px;color:var(--muted);margin-top:8px;text-align:center;}
     .user-bar{padding:12px;text-align:center;font-size:13px;color:var(--muted);border-bottom:1px solid #f3f4f6;}
+    .auth-logo{display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:20px;gap:8px;}
+    .logo-text{font-size:16px;font-weight:600;color:var(--accent);}
   </style>
 </head>
 <body>
   <div class="frame" role="main">
-    <div class="header">AI-чат</div>
+    <div class="header">AI Chat</div>
 
     <!-- 🔹 Блок авторизации -->
     <div id="authSection" class="auth">
+      <div class="auth-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4 8.5 8.5 0 0 1-6.6 3.1H8l-5 3V11.5a8.5 8.5 0 0 1 17 0z"></path>
+        </svg>
+        <div class="logo-text">AI Chat</div>
+      </div>
+
       <div class="tabs">
         <div id="tabSignin" class="tab active">Sign In</div>
         <div id="tabSignup" class="tab">Sign Up</div>
