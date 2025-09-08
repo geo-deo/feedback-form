@@ -27,7 +27,7 @@
 </head>
 <body>
   <div class="frame" role="main">
-    <div class="header">AI-чат — тест</div>
+    <div class="header">AI-чат</div>
 
     <div id="messages" class="messages" aria-live="polite"></div>
 
@@ -35,9 +35,6 @@
       <input id="inputMessage" placeholder="Напишите сообщение..." aria-label="Сообщение" />
       <button id="sendBtn">Отправить</button>
     </div>
-
-    <div class="small">Тест: сообщения посылаются на <code>http://localhost:3001/api/ai-chat</code></div>
-  </div>
 
   <script>
     (function () {
@@ -87,7 +84,7 @@
       }
 
       // Начальное сообщение
-      appendMessage('👋 Привет! Я AI-чат. Напишите любое сообщение внизу.', 'left');
+      appendMessage('👋 Привет! Чем могу быть полезен?', 'left');
 
       // Отправка
       async function sendMessage() {
