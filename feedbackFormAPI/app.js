@@ -1,9 +1,10 @@
 // server/app.js
 import express from "express";
 import cors from "cors";
-import prisma from "./db.js"; // теперь это PrismaClient
+import prisma from "./db.js"; // PrismaClient
 import { v4 as uuidv4 } from "uuid";
 import OpenAI from "openai";
+import admin from "./firebase.js"; // 🔹 Firebase SDK
 
 const app = express();
 app.use(express.json());
@@ -13,6 +14,25 @@ app.use(cors({ origin: "*" }));
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// 🔹 Middleware для проверки токена Firebase
+async function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: "No token provided" });
+  }
+
+  const token = authHeader.split(" ")[1]; // "Bearer <token>"
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.user = decoded; // { uid, email, ... }
+    next();
+  } catch (err) {
+    console.error("Token verification error:", err);
+    res.status(401).json({ error: "Invalid token" });
+  }
+}
 
 // Healthcheck
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
@@ -26,13 +46,13 @@ app.post("/api/ai-chat", async (req, res) => {
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-  {
-    role: "system",
-    content: "Ты — дружелюбный ассистент. ВСЕГДА отвечай на том же языке, на котором был задан вопрос пользователем."
-  },
-  { role: "user", content: message },
-],
-
+        {
+          role: "system",
+          content:
+            "Ты — дружелюбный ассистент. ВСЕГДА отвечай на том же языке, на котором был задан вопрос пользователем.",
+        },
+        { role: "user", content: message },
+      ],
     });
 
     res.json({ reply: completion.choices[0].message.content });
@@ -49,7 +69,9 @@ app.post("/api/feedback", async (req, res) => {
   try {
     const { name, email, message } = req.body || {};
     if (!name || !email || !message) {
-      return res.status(400).json({ ok: false, error: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ ok: false, error: "Missing required fields" });
     }
 
     const feedback = await prisma.feedback.create({
@@ -149,6 +171,15 @@ app.delete("/api/feedback/:id", async (req, res) => {
     console.error("DB error:", error);
     res.status(500).json({ ok: false, error: "DB error" });
   }
+});
+
+// 🔹 Тестовый защищённый роут
+app.get("/api/secure", verifyToken, (req, res) => {
+  res.json({
+    ok: true,
+    uid: req.user.uid,
+    email: req.user.email,
+  });
 });
 
 // Root

@@ -3,3 +3,5 @@ node_modules/
 server/data/
 feedbackFormServiceZone/config.js
 feedbackFormAPI/app.db
+# Firebase key
+firebase-key.json
