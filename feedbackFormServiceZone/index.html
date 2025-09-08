@@ -35,14 +35,14 @@
 <body>
   <h1>Feedback Admin</h1>
 
-<div style="margin-bottom: 1em;">
-  <input id="search" placeholder="Search..." />
-  <input type="date" id="dateFrom" />
-  <input type="date" id="dateTo" />
-  <button onclick="loadData(1)">Apply</button>
-</div>
+  <div style="margin-bottom: 1em;">
+    <input id="search" placeholder="Search..." />
+    <input type="date" id="dateFrom" />
+    <input type="date" id="dateTo" />
+    <button onclick="loadData(1)">Apply</button>
+  </div>
 
-<div id="pagination"></div>
+  <div id="pagination"></div>
   
   <div class="bar">
     <span class="muted">API base:</span>
@@ -72,8 +72,12 @@
     </tbody>
   </table>
 
+  <script src="./config.js"></script>
+<script>
+  const API_BASE = window.APP_CONFIG.API_BASE;
+</script>
+
   <script>
-    const API_BASE = 'https://feedback-form-z15x.onrender.com';
     const TOKEN_KEY = 'admin_token';
 
     const $ = (sel) => document.querySelector(sel);

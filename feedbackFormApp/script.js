@@ -4,8 +4,9 @@ const btnSpinner = document.getElementById("btnSpinner");
 const btnLabel = document.getElementById("btnLabel");
 
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
-// ⚡ Backend на Render
-const API_URL = "https://feedback-form-z15x.onrender.com/api/feedback";
+
+// ⚡ Берём базовый URL из config.js
+const API_URL = `${API_BASE}/api/feedback`;
 
 function setError(id, hasError) {
   const input = document.getElementById(id);
