@@ -4,84 +4,62 @@
   <meta charset="utf-8" />
   <title>Feedback Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
-    body { margin: 24px; }
-    h1 { margin: 0 0 12px; }
-    .bar { display: flex; gap: 12px; align-items: center; margin: 12px 0 20px; }
-    input[type="text"], input[type="email"], textarea {
-      width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; outline: none;
-    }
-    textarea { min-height: 64px; resize: vertical; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid #eee; text-align: left; padding: 10px; vertical-align: top; }
-    th { font-weight: 600; font-size: 14px; color: #444; }
-    tr:hover { background: #fafafa; }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn {
-      border: 1px solid #ddd; background: #fff; padding: 6px 10px; border-radius: 10px; cursor: pointer;
-      transition: transform .06s ease, box-shadow .12s ease, background .2s ease;
-    }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-    .btn.primary { border-color: #1b72ff; }
-    .btn.danger { border-color: #ff4d4f; }
-    .muted { color: #777; font-size: 12px; }
-    .pill { padding: 2px 8px; border-radius: 999px; border: 1px solid #eee; background: #f8f8f8; }
-    .right { margin-left: auto; }
-    .status { font-size: 13px; }
-    .nowrap { white-space: nowrap; }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Feedback Admin</h1>
+<body class="bg-gray-100 min-h-screen p-6">
+  <h1 class="text-2xl font-bold mb-6">Feedback Admin</h1>
 
-  <div style="margin-bottom: 1em;">
-    <input id="search" placeholder="Search..." />
-    <input type="date" id="dateFrom" />
-    <input type="date" id="dateTo" />
-    <button onclick="loadData(1)">Apply</button>
+  <div class="flex gap-3 mb-4">
+    <input id="search" placeholder="Search..." class="border rounded-lg px-3 py-2" />
+    <input type="date" id="dateFrom" class="border rounded-lg px-3 py-2" />
+    <input type="date" id="dateTo" class="border rounded-lg px-3 py-2" />
+    <button onclick="loadData(1)" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+      Apply
+    </button>
   </div>
 
-  <div id="pagination"></div>
+  <div id="pagination" class="mb-4"></div>
   
-  <div class="bar">
-    <span class="muted">API base:</span>
-    <code id="apiBaseView" class="pill"></code>
+  <div class="flex items-center gap-3 mb-4">
+    <span class="text-gray-600">API base:</span>
+    <code id="apiBaseView" class="px-2 py-1 bg-gray-200 rounded"></code>
 
-    <span class="muted right">Admin token:</span>
-    <input id="adminToken" type="text" placeholder="X-Admin-Token (optional)" style="max-width: 280px">
-    <button class="btn" id="saveTokenBtn">Save</button>
-    <button class="btn" id="clearTokenBtn">Clear</button>
+    <span class="ml-auto text-gray-600">Admin token:</span>
+    <input id="adminToken" type="text" placeholder="X-Admin-Token (optional)"
+           class="border rounded-lg px-3 py-2 w-64" />
+    <button class="border px-3 py-2 rounded-lg hover:bg-gray-50" id="saveTokenBtn">Save</button>
+    <button class="border px-3 py-2 rounded-lg hover:bg-gray-50" id="clearTokenBtn">Clear</button>
 
-    <span id="status" class="status muted"></span>
+    <span id="status" class="text-sm text-gray-500"></span>
   </div>
 
-  <table id="tbl">
-    <thead>
-      <tr>
-        <th class="nowrap">Name</th>
-        <th class="nowrap">Email</th>
-        <th>Message</th>
-        <th class="nowrap">Created</th>
-        <th class="nowrap">Meta</th>
-        <th class="nowrap">Actions</th>
-      </tr>
-    </thead>
-    <tbody id="tbody">
-      <tr><td colspan="6" class="muted">Loading…</td></tr>
-    </tbody>
-  </table>
+  <div class="overflow-x-auto bg-white shadow rounded-lg">
+    <table class="w-full border-collapse">
+      <thead class="bg-gray-50 text-sm text-gray-600">
+        <tr>
+          <th class="px-3 py-2 text-left">Name</th>
+          <th class="px-3 py-2 text-left">Email</th>
+          <th class="px-3 py-2 text-left">Message</th>
+          <th class="px-3 py-2 text-left">Created</th>
+          <th class="px-3 py-2 text-left">Meta</th>
+          <th class="px-3 py-2 text-left">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody" class="divide-y">
+        <tr><td colspan="6" class="text-center text-gray-500 p-4">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <script src="./config.js"></script>
-<script>
-  const API_BASE = window.APP_CONFIG.API_BASE;
-</script>
+  <script>
+    const API_BASE = window.APP_CONFIG.API_BASE;
+  </script>
 
+  <!-- оставляем твой JS -->
   <script>
     const TOKEN_KEY = 'admin_token';
-
     const $ = (sel) => document.querySelector(sel);
-
     const state = { items: [], editing: new Set() };
     const ui = { page: 1, limit: 5, totalPages: 1 };
 
@@ -138,27 +116,20 @@
       const search = ($('#search')?.value || '').trim();
       const dateFrom = $('#dateFrom')?.value || '';
       const dateTo = $('#dateTo')?.value || '';
-
-      const qs = new URLSearchParams({
-        page: String(ui.page), limit: String(ui.limit),
-        search, dateFrom, dateTo
-      });
+      const qs = new URLSearchParams({ page: String(ui.page), limit: String(ui.limit), search, dateFrom, dateTo });
 
       setStatus('Loading…');
       try {
         const res = await fetch(`${API_BASE}/api/feedback?${qs}`, { headers: headersJson() });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || 'Failed to load');
-
         state.items = data.data || data.items || [];
         ui.totalPages = data.totalPages || 1;
-
-        render();
-        renderPagination();
+        render(); renderPagination();
         setStatus(`Loaded ${state.items.length} (page ${ui.page}/${ui.totalPages})`);
       } catch (e) {
         console.error(e);
-        $('#tbody').innerHTML = `<tr><td colspan="6" class="muted">Error: ${e.message}</td></tr>`;
+        $('#tbody').innerHTML = `<tr><td colspan="6" class="text-gray-500 text-center p-4">Error: ${e.message}</td></tr>`;
         setStatus('Error');
       }
     }
@@ -168,8 +139,8 @@
       if (!host) return;
       if (ui.totalPages <= 1) { host.innerHTML = ''; return; }
       const { page, totalPages } = ui;
-      let html = `<div style="display:flex; gap:6px; align-items:center; margin:10px 0;">`;
-      html += `<button ${page<=1?'disabled':''} onclick="loadData(${page-1})">« Prev</button>`;
+      let html = `<div class="flex gap-2 items-center">`;
+      html += `<button ${page<=1?'disabled':''} onclick="loadData(${page-1})" class="px-3 py-1 border rounded">« Prev</button>`;
       const pages = [];
       for (let p = 1; p <= totalPages; p++) {
         if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) pages.push(p);
@@ -177,10 +148,10 @@
       let last = 0;
       for (const p of pages) {
         if (p - last > 1) html += `<span>…</span>`;
-        html += ` <button ${p===page?'disabled':''} onclick="loadData(${p})">${p}</button>`;
+        html += `<button ${p===page?'disabled':''} onclick="loadData(${p})" class="px-3 py-1 border rounded ${p===page?'bg-blue-600 text-white':''}">${p}</button>`;
         last = p;
       }
-      html += ` <button ${page>=totalPages?'disabled':''} onclick="loadData(${page+1})">Next »</button>`;
+      html += `<button ${page>=totalPages?'disabled':''} onclick="loadData(${page+1})" class="px-3 py-1 border rounded">Next »</button>`;
       html += `</div>`;
       host.innerHTML = html;
     }
@@ -203,47 +174,40 @@
         const isEdit = state.editing.has(item.id);
         if (!isEdit) {
           return `<tr data-id="${item.id}">
-              <td>${escapeHtml(item.name)}</td>
-              <td>${escapeHtml(item.email)}</td>
-              <td>${nl2br(escapeHtml(item.message))}</td>
-              <td class="nowrap">${fmtDate(item.createdAt)}</td>
-              <td>
-                <div class="muted">
-                  <div><b>IP:</b> ${escapeHtml(item.ip || '')}</div>
-                  <div class="muted"><b>UA:</b> ${escapeHtml((item.userAgent || '').slice(0, 90))}${(item.userAgent||'').length>90?'…':''}</div>
-                </div>
+              <td class="px-3 py-2">${escapeHtml(item.name)}</td>
+              <td class="px-3 py-2">${escapeHtml(item.email)}</td>
+              <td class="px-3 py-2">${nl2br(escapeHtml(item.message))}</td>
+              <td class="px-3 py-2">${fmtDate(item.createdAt)}</td>
+              <td class="px-3 py-2 text-sm text-gray-500">
+                <div><b>IP:</b> ${escapeHtml(item.ip || '')}</div>
+                <div><b>UA:</b> ${escapeHtml((item.userAgent || '').slice(0, 50))}${(item.userAgent||'').length>50?'…':''}</div>
               </td>
-              <td class="actions">
-                <button class="btn primary" onclick="enterEditMode('${item.id}')">Edit</button>
-                <button class="btn danger" onclick="deleteFeedback('${item.id}')">Delete</button>
+              <td class="px-3 py-2 flex gap-2">
+                <button class="px-3 py-1 border rounded bg-blue-50 hover:bg-blue-100" onclick="enterEditMode('${item.id}')">Edit</button>
+                <button class="px-3 py-1 border rounded bg-red-50 hover:bg-red-100" onclick="deleteFeedback('${item.id}')">Delete</button>
               </td>
             </tr>`;
         } else {
           return `<tr data-id="${item.id}">
-              <td><input name="name" type="text" value="${attr(item.name)}"></td>
-              <td><input name="email" type="email" value="${attr(item.email)}"></td>
-              <td><textarea name="message">${attr(item.message)}</textarea></td>
-              <td class="nowrap">${fmtDate(item.createdAt)}</td>
-              <td>
-                <div class="muted">
-                  <div><b>IP:</b> ${escapeHtml(item.ip || '')}</div>
-                  <div class="muted"><b>UA:</b> ${escapeHtml((item.userAgent || '').slice(0, 90))}${(item.userAgent||'').length>90?'…':''}</div>
-                </div>
+              <td class="px-3 py-2"><input name="name" type="text" value="${attr(item.name)}" class="border rounded px-2 py-1 w-full"></td>
+              <td class="px-3 py-2"><input name="email" type="email" value="${attr(item.email)}" class="border rounded px-2 py-1 w-full"></td>
+              <td class="px-3 py-2"><textarea name="message" class="border rounded px-2 py-1 w-full">${attr(item.message)}</textarea></td>
+              <td class="px-3 py-2">${fmtDate(item.createdAt)}</td>
+              <td class="px-3 py-2 text-sm text-gray-500">
+                <div><b>IP:</b> ${escapeHtml(item.ip || '')}</div>
+                <div><b>UA:</b> ${escapeHtml((item.userAgent || '').slice(0, 50))}${(item.userAgent||'').length>50?'…':''}</div>
               </td>
-              <td class="actions">
-                <button class="btn primary" onclick="saveRow('${item.id}')">Save</button>
-                <button class="btn" onclick="cancelEdit('${item.id}')">Cancel</button>
+              <td class="px-3 py-2 flex gap-2">
+                <button class="px-3 py-1 border rounded bg-blue-600 text-white" onclick="saveRow('${item.id}')">Save</button>
+                <button class="px-3 py-1 border rounded" onclick="cancelEdit('${item.id}')">Cancel</button>
               </td>
             </tr>`;
         }
       }).join('');
-      $('#tbody').innerHTML = rows || `<tr><td colspan="6" class="muted">Empty</td></tr>`;
+      $('#tbody').innerHTML = rows || `<tr><td colspan="6" class="text-center text-gray-500 p-4">Empty</td></tr>`;
     }
 
-    function escapeHtml(s) {
-      return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-    }
+    function escapeHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
     function attr(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
     function nl2br(s) { return String(s).replace(/\n/g, '<br>'); }
 
