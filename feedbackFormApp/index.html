@@ -5,114 +5,90 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Chat with Auth</title>
   <style>
-    :root {
+    :root{
       --bg:#f3f4f6; --card:#fff; --accent:#4f46e5; --muted:#6b7280;
       --bubble-user:#eef2ff; --bubble-bot:#ffffff;
     }
-    html, body {
-  height: 100%;
-  margin: 0;
-  font-family: Inter, Segoe UI, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial;
-  background: var(--bg);
-}}
-    /* убираем flex с body */
-body {
-  display: flex;
-  justify-content: center;
-}
-    .frame {
-  width: 100%;
-  max-width: 420px;
-  height: 100%;               /* 👈 занимает всю высоту экрана */
-  background: var(--card);
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(2,6,23,0.08);
-  display: flex;
-  flex-direction: column;     /* 👈 вертикальная раскладка */
-}
-    .messages {
-  flex: 1 1 auto;             /* 👈 занимает всё доступное место */
-  min-height: 0;              /* 👈 фикс для правильного скролла */
-  padding: 16px;
-  overflow-y: auto;           /* 👈 скролл только для сообщений */
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-    .msg{max-width:78%;padding:10px 12px;border-radius:12px;box-shadow:0 1px 0 rgba(0,0,0,0.02);line-height:1.35;font-size:14px}
-    .msg.left{align-self:flex-start;background:var(--bubble-bot);border:1px solid #f1f5f9}
-    .msg.right{align-self:flex-end;background:var(--bubble-user);border:1px solid rgba(79,70,229,0.08)}
-    .composer {
-  flex-shrink: 0;             /* 👈 не схлопывается */
-  display: flex;
-  padding: 12px;
-  border-top: 1px solid #eef2ff;
-  gap: 8px;
-  background: var(--card);
-}
 
-.composer input {
-  flex: 1;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid #e6e9ef;
-  font-size: 14px;
-}
+    *,*::before,*::after{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{ margin:0; font-family: Inter, Segoe UI, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial; background:var(--bg); }
 
-.composer button {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 10px;
-  cursor: pointer;
-  white-space: nowrap;       /* 👈 чтобы текст кнопки не переносился */
-}
-    .typing{font-style:italic;color:var(--muted);font-size:13px;}
-    .auth{flex:1;display:flex;flex-direction:column;align-items:center;padding:32px;gap:12px;}
-    .auth input{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px}
-    .auth button{width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;transition:0.2s;}
-    .auth button:hover{opacity:0.9}
-    .tabs{display:flex;width:100%;margin-bottom:16px;border-bottom:1px solid #e5e7eb;}
-    .tab{flex:1;text-align:center;padding:10px;cursor:pointer;font-weight:500;color:var(--muted);}
-    .tab.active{color:var(--accent);border-bottom:2px solid var(--accent);}
-    .status{font-size:13px;color:var(--muted);margin-top:8px;text-align:center;}
-    .user-bar{padding:12px;text-align:center;font-size:13px;color:var(--muted);border-bottom:1px solid #f3f4f6;}
-    .auth-logo{margin-top:40px;margin-bottom:20px;display:flex;flex-direction:column;align-items:center;gap:8px;}
-    .logo-text{font-size:16px;font-weight:600;color:var(--accent);}
+    /* Общий контейнер приложения */
+    .frame{
+      height:100dvh;               /* устойчивее к мобильной клавиатуре */
+      max-width:980px;             /* чат шире на десктопе */
+      margin:0 auto;               /* по центру */
+      background:var(--card);
+      border-radius:12px;
+      box-shadow:0 8px 30px rgba(2,6,23,.08);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;             /* чтобы не было двойного скролла */
+    }
+
+    /* ---------- ЭКРАН АВТОРИЗАЦИИ ---------- */
+    .auth-screen{ flex:1; display:grid; place-items:center; padding:24px; }
+    .auth-card{ width:100%; max-width:420px; display:flex; flex-direction:column; gap:12px; }
+    .auth-logo{ margin:8px 0 6px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .logo-text{ font-size:16px; font-weight:600; color:var(--accent); }
+    .tabs{ display:flex; width:100%; margin:8px 0 4px; border-bottom:1px solid #e5e7eb; }
+    .tab{ flex:1; text-align:center; padding:10px; cursor:pointer; font-weight:500; color:var(--muted); }
+    .tab.active{ color:var(--accent); border-bottom:2px solid var(--accent); }
+    .auth-card input{ width:100%; padding:12px; border:1px solid #e6e9ef; border-radius:10px; font-size:14px; }
+    .auth-card button{ width:100%; background:var(--accent); color:#fff; border:none; padding:12px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; transition:opacity .2s; }
+    .auth-card button:hover{ opacity:.9; }
+    .status{ font-size:13px; color:var(--muted); margin-top:6px; text-align:center; min-height:18px; }
+
+    /* ---------- ЭКРАН ЧАТА ---------- */
+    .chat-screen{ flex:1; display:none; flex-direction:column; }
+    .chat-screen.show{ display:flex; }
+    .user-bar{ padding:12px; text-align:center; font-size:13px; color:var(--muted); border-bottom:1px solid #f3f4f6; }
+
+    .messages{ flex:1 1 auto; min-height:0; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+    .msg{ max-width:78%; padding:10px 12px; border-radius:12px; box-shadow:0 1px 0 rgba(0,0,0,.02); line-height:1.35; font-size:14px; }
+    .msg.left{ align-self:flex-start; background:var(--bubble-bot); border:1px solid #f1f5f9; }
+    .msg.right{ align-self:flex-end; background:var(--bubble-user); border:1px solid rgba(79,70,229,.08); }
+    .typing{ font-style:italic; color:var(--muted); font-size:13px; }
+
+    .composer{ flex-shrink:0; display:flex; gap:8px; padding:12px; border-top:1px solid #eef2ff; background:var(--card); padding-bottom:calc(12px + env(safe-area-inset-bottom)); }
+    .composer input{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid #e6e9ef; font-size:14px; }
+    .composer button{ background:var(--accent); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; white-space:nowrap; }
+
+    @media (max-width:640px){
+      .frame{ max-width:100%; border-radius:0; box-shadow:none; }
+    }
   </style>
 </head>
 <body>
   <div class="frame" role="main">
-
     <!-- 🔹 Авторизация -->
-    <div id="authSection" class="auth">
-      <div class="auth-logo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="none" stroke="#4f46e5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-        <div class="logo-text">AI Chat</div>
+    <section id="authSection" class="auth-screen">
+      <div class="auth-card" role="form" aria-labelledby="authTitle">
+        <div class="auth-logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="none" stroke="#4f46e5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <div id="authTitle" class="logo-text">AI Chat</div>
+        </div>
+        <div class="tabs" role="tablist">
+          <div id="tabSignin" class="tab active" role="tab" aria-selected="true">Sign In</div>
+          <div id="tabSignup" class="tab" role="tab" aria-selected="false">Sign Up</div>
+        </div>
+        <input type="email" id="authEmail" placeholder="Email" autocomplete="email" />
+        <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password" />
+        <button id="authBtn">Sign In</button>
+        <div id="authStatus" class="status" aria-live="polite"></div>
       </div>
-
-      <div class="tabs">
-        <div id="tabSignin" class="tab active">Sign In</div>
-        <div id="tabSignup" class="tab">Sign Up</div>
-      </div>
-      <input type="email" id="authEmail" placeholder="Email" />
-      <input type="password" id="authPassword" placeholder="Password" />
-      <button id="authBtn">Sign In</button>
-      <div id="authStatus" class="status"></div>
-    </div>
+    </section>
 
     <!-- 🔹 Чат -->
-    <div id="chatSection" style="display:none;flex:1;flex-direction:column">
+    <section id="chatSection" class="chat-screen" aria-hidden="true">
       <div id="userBar" class="user-bar"></div>
       <div id="messages" class="messages" aria-live="polite"></div>
       <div class="composer" aria-label="composer">
         <input id="inputMessage" placeholder="Напишите сообщение..." aria-label="Сообщение" />
         <button id="sendBtn">Отправить</button>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- 🔹 Firebase + логика -->
@@ -120,8 +96,7 @@ body {
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-    // ⚡ Вставь свой конфиг
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    // ⚡ Твой Firebase config (клиентский — можно хранить в коде)
     const firebaseConfig = {
       apiKey: "AIzaSyCCE7xEdDgukUVN_zNRQwbg9LHiuHCSDCA",
       authDomain: "feedback-form-c4ea0.firebaseapp.com",
@@ -143,121 +118,106 @@ body {
     const tabSignup = document.getElementById("tabSignup");
     let mode = "signin"; // signin | signup
 
-    // Переключение вкладок
-    function setMode(newMode) {
+    function setMode(newMode){
       mode = newMode;
-      if (mode === "signin") {
-        tabSignin.classList.add("active");
-        tabSignup.classList.remove("active");
-        authBtn.textContent = "Sign In";
-      } else {
-        tabSignup.classList.add("active");
-        tabSignin.classList.remove("active");
-        authBtn.textContent = "Sign Up";
-      }
+      const isSignIn = mode === "signin";
+      tabSignin.classList.toggle("active", isSignIn);
+      tabSignup.classList.toggle("active", !isSignIn);
+      authBtn.textContent = isSignIn ? "Sign In" : "Sign Up";
+      statusEl.textContent = "";
     }
     tabSignin.addEventListener("click", ()=>setMode("signin"));
     tabSignup.addEventListener("click", ()=>setMode("signup"));
 
-    // Авторизация / Регистрация
-    authBtn.addEventListener("click", async () => {
-      const email = document.getElementById("authEmail").value;
-      const password = document.getElementById("authPassword").value;
+    authBtn.addEventListener("click", doAuth);
+    document.addEventListener("keydown", (e)=>{ if(e.key==="Enter" && (document.activeElement.id==="authEmail" || document.activeElement.id==="authPassword")) doAuth(); });
 
-      try {
+    async function doAuth(){
+      const email = (document.getElementById("authEmail").value || "").trim();
+      const password = document.getElementById("authPassword").value || "";
+      if(!email || !password){ statusEl.textContent = "Введите email и пароль"; return; }
+      try{
         let userCred;
-        if (mode === "signup") {
+        if(mode === "signup"){
           userCred = await createUserWithEmailAndPassword(auth, email, password);
           statusEl.textContent = "✅ Зарегистрирован: " + userCred.user.email;
-        } else {
+        }else{
           userCred = await signInWithEmailAndPassword(auth, email, password);
           statusEl.textContent = "✅ Вход выполнен: " + userCred.user.email;
         }
-
         const token = await userCred.user.getIdToken();
         afterLogin(token, userCred.user.email);
-
-      } catch (err) {
-        statusEl.textContent = "❌ Ошибка: " + err.message;
+      }catch(err){
+        statusEl.textContent = "❌ Ошибка: " + (err?.message || err);
       }
-    });
+    }
 
-    // После логина → показываем чат
-    function afterLogin(token, email) {
+    function afterLogin(token, email){
+      // Показать чат, спрятать auth
       authSection.style.display = "none";
-      chatSection.style.display = "flex";
+      chatSection.classList.add("show");
+      chatSection.setAttribute("aria-hidden", "false");
       document.getElementById("userBar").textContent = "👤 " + email;
       startChat(token);
     }
 
-    // 🔹 Логика чата
-    function startChat(token) {
-      const API_BASE = "https://feedback-form-api.onrender.com"; // 👈 твой бэкенд-домен
+    // ---------- ЛОГИКА ЧАТА ----------
+    function startChat(token){
+      const API_BASE = "https://feedback-form-api.onrender.com"; // твой бэкенд
       const API_URL = API_BASE.replace(/\/$/, '') + '/api/ai-chat';
+
       const messagesEl = document.getElementById('messages');
       const inputEl = document.getElementById('inputMessage');
       const sendBtn = document.getElementById('sendBtn');
 
-      function appendMessage(text, side = 'left') {
+      function scrollBottom(){ messagesEl.scrollTop = messagesEl.scrollHeight + 999; }
+      function appendMessage(text, side='left'){
         const el = document.createElement('div');
         el.className = 'msg ' + (side === 'left' ? 'left' : 'right');
         el.textContent = text;
         messagesEl.appendChild(el);
-        messagesEl.scrollTop = messagesEl.scrollHeight + 999;
+        scrollBottom();
       }
-
-      function setTyping(on, text = 'AI печатает…') {
-        if (on) {
-          if (!messagesEl.querySelector('.__typing')) {
+      function setTyping(on, text='AI печатает…'){
+        if(on){
+          if(!messagesEl.querySelector('.__typing')){
             const el = document.createElement('div');
             el.className = 'msg left __typing';
-            el.innerHTML = '<span class="typing">' + text + '</span>';
+            el.innerHTML = '<span class="typing">'+text+'</span>';
             messagesEl.appendChild(el);
-            messagesEl.scrollTop = messagesEl.scrollHeight + 999;
+            scrollBottom();
           }
         } else {
-          const t = messagesEl.querySelector('.__typing');
-          if (t) t.remove();
+          messagesEl.querySelector('.__typing')?.remove();
         }
       }
 
       appendMessage('👋 Привет! Чем могу быть полезен?', 'left');
 
-      async function sendMessage() {
-        const val = inputEl.value.trim();
-        if (!val) return;
+      async function sendMessage(){
+        const val = (inputEl.value || '').trim();
+        if(!val) return;
         appendMessage(val, 'right');
         inputEl.value = '';
         inputEl.focus();
-
         setTyping(true);
-
-        try {
+        try{
           const resp = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ message: val }),
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ message: val })
           });
-
-          const data = await resp.json();
+          const data = await resp.json().catch(()=>({ reply:'⚠️ Неверный ответ сервера' }));
           setTyping(false);
-          appendMessage(data.reply || "⚠️ Пустой ответ", 'left');
-        } catch (err) {
+          appendMessage(data.reply || '⚠️ Пустой ответ', 'left');
+        }catch(err){
           setTyping(false);
-          appendMessage('❌ Ошибка соединения: ' + err.message, 'left');
+          appendMessage('❌ Ошибка соединения: ' + (err?.message || err), 'left');
         }
       }
 
       sendBtn.addEventListener('click', sendMessage);
-      inputEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
+      inputEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
     }
   </script>
 </body>
