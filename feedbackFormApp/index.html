@@ -16,7 +16,7 @@
 
     /* Общий контейнер приложения */
     .frame{
-      height:100dvh;               /* устойчивее к мобильной клавиатуре */
+      height:100vh; height:100dvh; height:100svh;               /* устойчивее к мобильной клавиатуре */
       max-width:980px;             /* чат шире на десктопе */
       margin:0 auto;               /* по центру */
       background:var(--card);
@@ -41,11 +41,11 @@
     .status{ font-size:13px; color:var(--muted); margin-top:6px; text-align:center; min-height:18px; }
 
     /* ---------- ЭКРАН ЧАТА ---------- */
-    .chat-screen{ flex:1; display:none; flex-direction:column; }
+    .chat-screen{ flex:1 1 auto; min-height:0; display:none; flex-direction:column; }
     .chat-screen.show{ display:flex; }
     .user-bar{ padding:12px; text-align:center; font-size:13px; color:var(--muted); border-bottom:1px solid #f3f4f6; }
 
-    .messages{ flex:1 1 auto; min-height:0; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+    .messages{ flex:1 1 auto; min-height:0; padding:16px; overflow-y:auto; overscroll-behavior:contain; display:flex; flex-direction:column; gap:12px; }
     .msg{ max-width:78%; padding:10px 12px; border-radius:12px; box-shadow:0 1px 0 rgba(0,0,0,.02); line-height:1.35; font-size:14px; }
     .msg.left{ align-self:flex-start; background:var(--bubble-bot); border:1px solid #f1f5f9; }
     .msg.right{ align-self:flex-end; background:var(--bubble-user); border:1px solid rgba(79,70,229,.08); }
