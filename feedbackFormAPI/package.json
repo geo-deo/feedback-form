@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "prisma generate && prisma db push",
+    "prisma:push": "prisma db push",
+    "prisma:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
