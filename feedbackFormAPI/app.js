@@ -9,7 +9,7 @@ import admin from "./firebase.js"; // 🔹 Firebase SDK
 const app = express();
 app.use(express.json());
 // CORS — разрешаем запросы с фронтенда на Render
-app.use(cors({
+__CORS_START__
   origin: "https://feedback-form-app.onrender.com", // 👈 твой фронтенд-домен
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
