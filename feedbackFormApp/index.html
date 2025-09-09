@@ -163,7 +163,7 @@
 
     // ---------- ЛОГИКА ЧАТА ----------
     function startChat(token){
-      const API_BASE = "https://feedback-form-api.onrender.com"; // твой бэкенд
+      const API_BASE = "http://localhost:3001"; // локальный бэкенд для разработки
       const API_URL = API_BASE.replace(/\/$/, '') + '/api/ai-chat';
 
       const messagesEl = document.getElementById('messages');
