@@ -143,7 +143,7 @@
 
     // 🔹 Логика чата
     function startChat(token) {
-      const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:3001';
+      const API_BASE = "https://your-api-service.onrender.com";
       const API_URL = API_BASE.replace(/\/$/, '') + '/api/ai-chat';
       const messagesEl = document.getElementById('messages');
       const inputEl = document.getElementById('inputMessage');
