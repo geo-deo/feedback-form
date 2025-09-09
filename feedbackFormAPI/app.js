@@ -1,4 +1,4 @@
-// server/app.js
+﻿// server/app.js
 import express from "express";
 import cors from "cors";
 import prisma from "./db.js"; // PrismaClient
@@ -9,12 +9,24 @@ import admin from "./firebase.js"; // 🔹 Firebase SDK
 const app = express();
 app.use(express.json());
 // CORS — разрешаем запросы с фронтенда на Render
-app.use(cors({
-  origin: "https://feedback-form-app.onrender.com", // 👈 твой фронтенд-домен
+// CORS: dev allows any origin, prod restricts to ALLOWED_ORIGINS
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "https://feedback-form-app.onrender.com")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // non-browser clients
+    if (process.env.NODE_ENV !== "production") return cb(null, true);
+    return cb(null, allowedOrigins.includes(origin));
+  },
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-}));
-app.options("*", cors());
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 
 // Инициализация OpenAI
@@ -271,3 +283,4 @@ app.get("/", (_req, res) => {
 });
 
 export default app;
+
