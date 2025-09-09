@@ -11,14 +11,55 @@
     }
     html,body{height:100%;margin:0;font-family:Inter,Segoe UI,system-ui,-apple-system,Roboto,"Helvetica Neue",Arial;}
     body{background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
-    .frame{width:420px;height:640px;background:var(--card);border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.08);display:flex;flex-direction:column;overflow:hidden;}
-    .messages{flex:1;padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px;}
+    .frame {
+  width: 100%;
+  max-width: 420px;        /* 👈 ограничиваем ширину, но растягиваем на мобилках */
+  height: 100vh;           /* 👈 на мобилках растягивается на весь экран */
+  max-height: 640px;       /* 👈 на десктопе ограничение */
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+    .messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
     .msg{max-width:78%;padding:10px 12px;border-radius:12px;box-shadow:0 1px 0 rgba(0,0,0,0.02);line-height:1.35;font-size:14px}
     .msg.left{align-self:flex-start;background:var(--bubble-bot);border:1px solid #f1f5f9}
     .msg.right{align-self:flex-end;background:var(--bubble-user);border:1px solid rgba(79,70,229,0.08)}
-    .composer{display:flex;padding:12px;border-top:1px solid #eef2ff;gap:8px}
-    .composer input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid #e6e9ef;font-size:14px}
-    .composer button{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
+    .composer {
+  display: flex;
+  padding: 12px;
+  border-top: 1px solid #eef2ff;
+  gap: 8px;
+  background: var(--card);    /* 👈 чтобы не "прилипал" к серому фону */
+}
+
+.composer input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ef;
+  font-size: 14px;
+}
+
+.composer button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;       /* 👈 чтобы текст кнопки не переносился */
+}
     .typing{font-style:italic;color:var(--muted);font-size:13px;}
     .auth{flex:1;display:flex;flex-direction:column;align-items:center;padding:32px;gap:12px;}
     .auth input{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px}
