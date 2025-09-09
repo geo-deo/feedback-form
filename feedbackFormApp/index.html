@@ -9,25 +9,33 @@
       --bg:#f3f4f6; --card:#fff; --accent:#4f46e5; --muted:#6b7280;
       --bubble-user:#eef2ff; --bubble-bot:#ffffff;
     }
-    html,body{height:100%;margin:0;font-family:Inter,Segoe UI,system-ui,-apple-system,Roboto,"Helvetica Neue",Arial;}
-    body{background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
+    html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Inter, Segoe UI, system-ui, -apple-system, Roboto, "Helvetica Neue", Arial;
+  background: var(--bg);
+}
+    /* убираем flex с body */
+body {
+  display: flex;
+  justify-content: center; /* центрируем только по горизонтали */
+  padding: 0;
+}
     .frame {
   width: 100%;
-  max-width: 420px;        /* 👈 ограничиваем ширину, но растягиваем на мобилках */
-  height: 100vh;           /* 👈 на мобилках растягивается на весь экран */
-  max-height: 640px;       /* 👈 на десктопе ограничение */
+  max-width: 420px;       /* ограничение на десктопе */
+  height: 100%;           /* теперь растягивается на всю высоту окна */
   background: var(--card);
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(2,6,23,0.08);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
+}}
     .messages {
   flex: 1 1 auto;
   min-height: 0;
   padding: 16px;
-  overflow-y: auto;
+  overflow-y: auto;       /* скролл работает */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -40,7 +48,7 @@
   padding: 12px;
   border-top: 1px solid #eef2ff;
   gap: 8px;
-  background: var(--card);    /* 👈 чтобы не "прилипал" к серому фону */
+  background: var(--card);
 }
 
 .composer input {
