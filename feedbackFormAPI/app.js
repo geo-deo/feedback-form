@@ -8,7 +8,14 @@ import admin from "./firebase.js"; // 🔹 Firebase SDK
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "*" }));
+// CORS — разрешаем запросы с фронтенда на Render
+app.use(cors({
+  origin: "https://feedback-form-app.onrender.com", // 👈 твой фронтенд-домен
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+app.options("*", cors());
+
 
 // Инициализация OpenAI
 const client = new OpenAI({
