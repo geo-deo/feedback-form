@@ -27,8 +27,9 @@ document.addEventListener("DOMContentLoaded", () => {
           });
 
           try {
-            // Отправляем на наш API
-            const res = await fetch("http://localhost:3001/api/ai-chat", {
+            // Отправляем на наш публичный AI API (без авторизации)
+            const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || "http://localhost:3001";
+            const res = await fetch(API_BASE.replace(/\/$/, "") + "/api/ai-chat-public", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ message: val }),

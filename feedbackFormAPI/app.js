@@ -45,9 +45,11 @@ async function verifyToken(req, res, next) {
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 // ===== AI Chat Endpoint =====
-app.post("/api/ai-chat", async (req, res) => {
+app.post("/api/ai-chat", verifyToken, async (req, res) => {
   const { message } = req.body;
-  if (!message) return res.status(400).json({ error: "No message provided" });
+  if (!message || !String(message).trim()) {
+    return res.status(400).json({ error: "No message provided" });
+  }
 
   try {
     const completion = await client.chat.completions.create({
@@ -62,7 +64,68 @@ app.post("/api/ai-chat", async (req, res) => {
       ],
     });
 
-    res.json({ reply: completion.choices[0].message.content });
+    const reply = completion.choices[0].message.content;
+
+    // Log per-user chat history (best-effort)
+    try {
+      await prisma.chatLog.createMany({
+        data: [
+          {
+            userId: req.user.uid,
+            userEmail: req.user.email || null,
+            role: "user",
+            content: String(message),
+          },
+          {
+            userId: req.user.uid,
+            userEmail: req.user.email || null,
+            role: "assistant",
+            content: String(reply),
+          },
+        ],
+      });
+    } catch (e) {
+      console.error("ChatLog error:", e);
+    }
+
+    res.json({ reply });
+  } catch (err) {
+    console.error("AI error:", err);
+    res.status(500).json({ error: "AI request failed" });
+  }
+});
+
+// Chat history for current user
+app.get("/api/ai-chat/history", verifyToken, async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const items = await prisma.chatLog.findMany({
+      where: { userId: req.user.uid },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+    });
+    res.json({ ok: true, items });
+  } catch (error) {
+    console.error("ChatLog fetch error:", error);
+    res.status(500).json({ ok: false, error: "DB error" });
+  }
+});
+
+// Public chat endpoint (no auth, no logging) to keep ChatUI working
+app.post("/api/ai-chat-public", async (req, res) => {
+  const { message } = req.body || {};
+  if (!message || !String(message).trim()) {
+    return res.status(400).json({ error: "No message provided" });
+  }
+  try {
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "Ты — краткий и вежливый помощник." },
+        { role: "user", content: message },
+      ],
+    });
+    res.json({ reply: completion.choices?.[0]?.message?.content || "" });
   } catch (err) {
     console.error("AI error:", err);
     res.status(500).json({ error: "AI request failed" });

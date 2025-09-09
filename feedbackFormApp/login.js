@@ -115,7 +115,10 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const resp = await fetch(API_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await user.getIdToken()}`,
+          },
           body: JSON.stringify({ message: val })
         });
 
@@ -135,5 +138,22 @@ document.addEventListener("DOMContentLoaded", () => {
         sendMessage();
       }
     });
+
+    // Load recent chat history for this user (best-effort)
+    (async () => {
+      try {
+        const token = await user.getIdToken();
+        const resp = await fetch(API_BASE.replace(/\/$/, "") + "/api/ai-chat/history?limit=50", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await resp.json();
+        if (data?.ok && Array.isArray(data.items)) {
+          data.items.forEach((m) => {
+            const side = m.role === "user" ? "right" : "left";
+            appendMessage(m.content, side);
+          });
+        }
+      } catch (_) { /* ignore */ }
+    })();
   }
 });

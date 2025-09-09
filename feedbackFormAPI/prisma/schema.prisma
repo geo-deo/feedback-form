@@ -22,3 +22,15 @@ model Feedback {
   ip        String?
   userAgent String?
 }
+
+// Minimal per-user chat logging without introducing a full User/ChatSession tree
+model ChatLog {
+  id         String   @id @default(uuid())
+  userId     String
+  userEmail  String?
+  role       String   // "user" | "assistant" | "system"
+  content    String
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
