@@ -83,12 +83,14 @@ app.post("/api/ai-chat", verifyToken, async (req, res) => {
       await prisma.chatLog.createMany({
         data: [
           {
+            id: uuidv4(),
             userId: req.user.uid,
             userEmail: req.user.email || null,
             role: "user",
             content: String(message),
           },
           {
+            id: uuidv4(),
             userId: req.user.uid,
             userEmail: req.user.email || null,
             role: "assistant",
