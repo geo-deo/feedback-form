@@ -6,15 +6,15 @@ const API_URL = "http://localhost:3000/api/feedback";
 async function fetchFeedback() {
   try {
     const res = await fetch(API_URL);
-    if (!res.ok) throw new Error(`Ошибка API: ${res.status}`);
+    if (!res.ok) throw new Error(`API Error: ${res.status}`);
     const data = await res.json();
 
-    if (!data.ok) throw new Error(data.error || "Ошибка ответа API");
+    if (!data.ok) throw new Error(data.error || "API Response Error");
     renderTable(data.items || []);
   } catch (err) {
-    console.error("Ошибка при загрузке:", err);
+    console.error("Failed to Load:", err);
     document.getElementById("feedbackTable").innerHTML =
-      `<tr><td colspan="5" style="color:red;">Ошибка загрузки данных</td></tr>`;
+      `<tr><td colspan="5" style="color:red;">Error Loading Data</td></tr>`;
   }
 }
 

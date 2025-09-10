@@ -436,7 +436,7 @@
         chatId = id;
         try { localStorage.setItem(chatKey, chatId); } catch(_) {}
         messagesEl.innerHTML = '';
-        appendMessage('Загружаю историю...', 'left');
+        appendMessage('Loading history...', 'left');
         loadChatMessages(id).then(() => highlightActive());
       }
 
