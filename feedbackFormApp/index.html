@@ -72,6 +72,11 @@
     .sidebar.collapsed{ width:72px; }
     .sidebar[hidden]{ display:none !important; }
     .sb-top{ padding:8px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid #f3f4f6; }
+    /* brand row: logo at left, subtle toggle on right */
+    .sb-brand-row{ display:flex; align-items:center; justify-content:space-between; padding:6px 4px; }
+    .sb-logo{ display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; background:var(--accent); color:#fff; font-weight:700; font-size:14px; user-select:none; }
+    .sb-icon-btn{ appearance:none; border:none; background:transparent; color:#6b7280; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; cursor:pointer; opacity:.55; transition:opacity .15s ease, background-color .15s ease; }
+    .sb-icon-btn:hover{ background:#eef2ff; opacity:.9; }
     .sb-btn{ display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; padding:10px 12px; border-radius:8px; cursor:pointer; color:#111827; }
     .sb-btn:hover{ background:#eef2ff; }
     .sb-icon{ width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #e5e7eb; border-radius:4px; font-weight:700; color:#6b7280; }
@@ -96,6 +101,11 @@
     /* Hide legacy New chat in top bar */
     .user-bar #newChatBtn{ display:none; }
     .user-bar #userEmail{ display:none; }
+
+    /* Collapsed behavior: show only logo; reveal toggle on hover */
+    .sidebar.collapsed .sb-brand-row{ position:relative; justify-content:center; }
+    .sidebar.collapsed #sbToggle{ position:absolute; right:6px; top:50%; transform:translateY(-50%); opacity:0; pointer-events:none; }
+    .sidebar.collapsed .sb-brand-row:hover #sbToggle{ opacity:1; pointer-events:auto; }
   </style>
 </head>
 <body>
@@ -122,10 +132,12 @@
     <section id="chatSection" class="chat-screen" aria-hidden="true">
       <aside id="sidebar" class="sidebar collapsed" aria-expanded="false" hidden>
         <div class="sb-top">
-          <button id="sbToggle" class="sb-btn" aria-label="Toggle sidebar" title="Свернуть/развернуть">
-            <span class="sb-icon">≡</span>
-            <span class="sb-text">Меню</span>
-          </button>
+          <div class="sb-brand-row">
+            <div id="sbLogo" class="sb-logo" title="Product">G</div>
+            <button id="sbToggle" class="sb-icon-btn" aria-label="Toggle sidebar" title="Toggle sidebar">
+              <span class="sb-icon">≡</span>
+            </button>
+          </div>
           <button id="newChatBtn" class="sb-btn" type="button">
             <span class="sb-icon">＋</span>
             <span class="sb-text">New chat</span>
