@@ -80,6 +80,7 @@
     .sb-btn{ display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; padding:10px 12px; border-radius:8px; cursor:pointer; color:#111827; }
     .sb-btn:hover{ background:#eef2ff; }
     .sb-icon{ width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #e5e7eb; border-radius:4px; font-weight:700; color:#6b7280; }
+    .sb-icon svg{ width:14px; height:14px; stroke:currentColor; fill:none; }
     .sb-text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sidebar.collapsed .sb-text{ display:none; }
     .sb-list{ flex:1 1 auto; min-height:0; overflow:auto; padding:8px; display:flex; flex-direction:column; gap:6px; }
@@ -284,6 +285,8 @@
         if (sbIcon) sbIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h16"/></svg>';
         const newBtn = document.getElementById('newChatBtn');
         if (newBtn) { newBtn.title = 'New chat'; newBtn.setAttribute('aria-label','New chat'); }
+        const newBtnIcon = document.querySelector('#sidebar #newChatBtn .sb-icon');
+        if (newBtnIcon) newBtnIcon.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.862 4.487l1.687-1.687a1.875 1.875 0 112.652 2.652L8.07 18.583a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.862 4.487z"/><path d="M10.5 6h-6A2.25 2.25 0 002.25 8.25v11.25A2.25 2.25 0 004.5 21.75H15.75A2.25 2.25 0 0018 19.5v-6"/></svg>';
         const chatList = document.getElementById('chatList');
         if (chatList) chatList.setAttribute('aria-label','Chat history');
         const signOutBtn = document.getElementById('signOutBtn');
