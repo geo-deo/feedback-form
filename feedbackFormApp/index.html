@@ -207,20 +207,20 @@
     async function doAuth(){
       const email = (document.getElementById("authEmail").value || "").trim();
       const password = document.getElementById("authPassword").value || "";
-      if(!email || !password){ statusEl.textContent = "Введите email и пароль"; return; }
+      if(!email || !password){ statusEl.textContent = "Enter your email and password"; return; }
       try{
         let userCred;
         if(mode === "signup"){
           userCred = await createUserWithEmailAndPassword(auth, email, password);
-          statusEl.textContent = "✅ Зарегистрирован: " + userCred.user.email;
+          statusEl.textContent = "✅ Signed Up: " + userCred.user.email;
         }else{
           userCred = await signInWithEmailAndPassword(auth, email, password);
-          statusEl.textContent = "✅ Вход выполнен: " + userCred.user.email;
+          statusEl.textContent = "✅ Signed In: " + userCred.user.email;
         }
         const token = await userCred.user.getIdToken();
         afterLogin(token, userCred.user.email);
       }catch(err){
-        statusEl.textContent = "❌ Ошибка: " + (err?.message || err);
+        statusEl.textContent = "❌ Error: " + (err?.message || err);
       }
     }
 
@@ -355,7 +355,7 @@
       appendMessage('👋 Привет! Чем могу быть полезен?', 'left');
 
       // Ensure EN greeting
-      try { messagesEl.innerHTML = ''; appendMessage('Hello! How can I help?', 'left'); } catch(_) {}
+      try { messagesEl.innerHTML = ''; appendMessage('👋 Hello! How can I help?', 'left'); } catch(_) {}
 
       async function sendMessage(){
         const val = (inputEl.value || '').trim();
@@ -371,7 +371,7 @@
             headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ message: val, chatId })
           });
-          const data = await resp.json().catch(()=>({ reply:'⚠️ Неверный ответ сервера' }));
+          const data = await resp.json().catch(()=>({ reply:'⚠️ Server Returned an Error' }));
           if (data && data.chatId && !chatId) {
             chatId = data.chatId;
             try { localStorage.setItem(chatKey, chatId); } catch(_) {}
@@ -386,10 +386,10 @@
             try { refreshChatList && refreshChatList(); } catch(_) {}
           }
           setTyping(false);
-          appendMessage(data.reply || '⚠️ Пустой ответ', 'left');
+          appendMessage(data.reply || '⚠️ Empty Response', 'left');
         }catch(err){
           setTyping(false);
-          appendMessage('❌ Ошибка соединения: ' + (err?.message || err), 'left');
+          appendMessage('❌ Connection Error: ' + (err?.message || err), 'left');
         }
       }
 
@@ -504,7 +504,7 @@
           try { localStorage.removeItem(chatKey); } catch(_) {}
           chatId = null;
           messagesEl.innerHTML = '';
-          appendMessage('Новый чат начат. Напишите сообщение.', 'left');
+          appendMessage('New chat started. Say something! 🙂', 'left');
           inputEl.focus();
         });
       }
@@ -522,7 +522,7 @@
             m.innerHTML = '';
             var el = document.createElement('div');
             el.className = 'msg left';
-            el.textContent = 'New chat started. Type your first message.';
+            el.textContent = 'New chat started. Say something! 🙂';
             m.appendChild(el);
           } catch(_) {}
         }, 0);
