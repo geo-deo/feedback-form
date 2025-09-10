@@ -308,6 +308,7 @@
       const inputEl = document.getElementById('inputMessage');
       const sendBtn = document.getElementById('sendBtn');
       const newChatBtn = document.getElementById('newChatBtn');
+      try { inputEl.placeholder = 'Type a message...'; sendBtn.textContent = 'Send'; } catch(_) {}
       const chatListEl = document.getElementById('chatList');
       const emailForKey = (document.getElementById('userEmail')?.textContent || 'anonymous');
       const chatKey = `chatId:${emailForKey}`;
@@ -340,6 +341,9 @@
       }
 
       appendMessage('👋 Привет! Чем могу быть полезен?', 'left');
+
+      // Ensure EN greeting
+      try { messagesEl.innerHTML = ''; appendMessage('Hello! How can I help?', 'left'); } catch(_) {}
 
       async function sendMessage(){
         const val = (inputEl.value || '').trim();
