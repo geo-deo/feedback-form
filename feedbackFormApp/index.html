@@ -68,12 +68,12 @@
     #messages{ grid-column:2; grid-row:2; }
     .composer{ grid-column:2; grid-row:3; }
 
-    .sidebar{ background:#fff; border-right:1px solid #eef2ff; display:flex; flex-direction:column; width:280px; transition:width .2s ease; }
+    .sidebar{ background:#f8fafc; border-right:1px solid #e5e7eb; display:flex; flex-direction:column; width:280px; transition:width .2s ease; }
     .sidebar.collapsed{ width:60px; }
     .sidebar[hidden]{ display:none !important; }
     .sb-top{ padding:8px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid #f3f4f6; }
     .sb-btn{ display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; padding:10px 12px; border-radius:8px; cursor:pointer; color:#111827; }
-    .sb-btn:hover{ background:#f8fafc; }
+    .sb-btn:hover{ background:#eef2ff; }
     .sb-icon{ width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #e5e7eb; border-radius:4px; font-weight:700; color:#6b7280; }
     .sb-text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sidebar.collapsed .sb-text{ display:none; }
@@ -94,6 +94,7 @@
     .signout-btn:hover{ background:#fef2f2; }
     /* Hide legacy New chat in top bar */
     .user-bar #newChatBtn{ display:none; }
+    .user-bar #userEmail{ display:none; }
   </style>
 </head>
 <body>
@@ -215,7 +216,10 @@
       authSection.style.display = "none";
       chatSection.classList.add("show");
       chatSection.setAttribute("aria-hidden", "false");
+      // Remove any header text (no email in header)
+      try { document.getElementById("userBar").textContent = ""; } catch(_) {}
       document.getElementById("userBar").textContent = "👤 " + email;
+      document.getElementById("userBar").textContent = "";
       // Fill email and prepare sidebar
       const emailEl = document.getElementById("userEmail");
       if (emailEl) emailEl.textContent = email;
