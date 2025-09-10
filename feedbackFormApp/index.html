@@ -275,6 +275,27 @@
         sidebar.hidden = true;
       });
 
+      // For existing users: check if any chats exist and, if yes,
+      // ensure the chat list is visible by default (auto-expand once).
+      (async () => {
+        try {
+          const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || 'http://localhost:3001';
+          const base = API_BASE.replace(/\/$/, '');
+          const resp = await fetch(`${base}/api/ai-chat/history?limit=1`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          const data = await resp.json();
+          if (data?.ok && Array.isArray(data.items) && data.items.length > 0) {
+            // Only auto-expand if user has no stored preference
+            const pref = localStorage.getItem(sbKey);
+            if (pref === null || pref === undefined) {
+              sidebar.classList.remove('collapsed');
+              sidebar.setAttribute('aria-expanded', 'true');
+            }
+          }
+        } catch(_) { /* ignore */ }
+      })();
+
       startChat(token);
     }
 
