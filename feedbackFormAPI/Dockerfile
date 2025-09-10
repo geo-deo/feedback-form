@@ -12,7 +12,7 @@ RUN npm install --production
 COPY . .
 
 # Открываем порт (твой API слушает на 4000)
-EXPOSE 4000
+EXPOSE 3001
 
 # Команда запуска
-CMD ["node", "index.js"]
+CMD ["node", "server.js"]
