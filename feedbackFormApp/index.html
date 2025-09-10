@@ -117,7 +117,9 @@
     /* Collapsed behavior: show only logo; reveal toggle on hover */
     .sidebar.collapsed .sb-brand-row{ position:relative; justify-content:center; }
     .sidebar.collapsed #sbToggle{ position:absolute; right:6px; top:50%; transform:translateY(-50%); opacity:0; pointer-events:none; }
+    /* On hover in collapsed mode show only the sidebar toggle icon */
     .sidebar.collapsed .sb-brand-row:hover #sbToggle{ opacity:1; pointer-events:auto; }
+    .sidebar.collapsed .sb-brand-row:hover #sbLogo{ opacity:0; }
     /* Center icons when collapsed */
     .sidebar.collapsed .sb-btn{ justify-content:center; padding-left:0; padding-right:0; }
 
