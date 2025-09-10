@@ -60,6 +60,40 @@
     @media (max-width:640px){
       .frame{ max-width:100%; border-radius:0; box-shadow:none; }
     }
+
+    /* Sidebar layout additions */
+    .chat-screen.show{ display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto 1fr auto; }
+    #sidebar{ grid-column:1; grid-row:1 / span 3; }
+    #userBar{ grid-column:2; grid-row:1; }
+    #messages{ grid-column:2; grid-row:2; }
+    .composer{ grid-column:2; grid-row:3; }
+
+    .sidebar{ background:#fff; border-right:1px solid #eef2ff; display:flex; flex-direction:column; width:280px; transition:width .2s ease; }
+    .sidebar.collapsed{ width:60px; }
+    .sidebar[hidden]{ display:none !important; }
+    .sb-top{ padding:8px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid #f3f4f6; }
+    .sb-btn{ display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; padding:10px 12px; border-radius:8px; cursor:pointer; color:#111827; }
+    .sb-btn:hover{ background:#f8fafc; }
+    .sb-icon{ width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #e5e7eb; border-radius:4px; font-weight:700; color:#6b7280; }
+    .sb-text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sidebar.collapsed .sb-text{ display:none; }
+    .sb-list{ flex:1 1 auto; min-height:0; overflow:auto; padding:8px; display:flex; flex-direction:column; gap:6px; }
+    .sidebar.collapsed .sb-list{ display:none; }
+    .chat-item{ display:flex; align-items:center; gap:8px; text-align:left; width:100%; border:none; background:transparent; padding:8px 10px; border-radius:8px; cursor:pointer; color:#111827; }
+    .chat-item:hover{ background:#f8fafc; }
+    .chat-item.active{ background:#eef2ff; color:#3730a3; }
+    .chat-item .dot{ width:6px; height:6px; border-radius:50%; background:#d1d5db; flex:0 0 6px; }
+    .sidebar.collapsed .chat-item .title{ display:none; }
+    .sidebar.collapsed .chat-item{ justify-content:center; }
+    .sb-account{ border-top:1px solid #f3f4f6; padding:10px; display:flex; align-items:center; gap:10px; }
+    .avatar{ width:28px; height:28px; border-radius:50%; background:#e5e7eb; color:#111827; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+    .acc-info{ display:flex; flex-direction:column; font-size:12px; color:#6b7280; min-width:0; }
+    .acc-info .name{ color:#111827; font-weight:600; }
+    .sidebar.collapsed .acc-info{ display:none; }
+    .signout-btn{ margin-left:auto; background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:12px; border-radius:6px; padding:6px 8px; }
+    .signout-btn:hover{ background:#fef2f2; }
+    /* Hide legacy New chat in top bar */
+    .user-bar #newChatBtn{ display:none; }
   </style>
 </head>
 <body>
@@ -84,6 +118,27 @@
 
     <!-- 🔹 Чат -->
     <section id="chatSection" class="chat-screen" aria-hidden="true">
+      <aside id="sidebar" class="sidebar collapsed" aria-expanded="false" hidden>
+        <div class="sb-top">
+          <button id="sbToggle" class="sb-btn" aria-label="Toggle sidebar" title="Свернуть/развернуть">
+            <span class="sb-icon">≡</span>
+            <span class="sb-text">Меню</span>
+          </button>
+          <button id="newChatBtn" class="sb-btn" type="button">
+            <span class="sb-icon">＋</span>
+            <span class="sb-text">New chat</span>
+          </button>
+        </div>
+        <div id="chatList" class="sb-list" aria-label="История чатов"></div>
+        <div class="sb-account">
+          <div id="userAvatar" class="avatar">?</div>
+          <div class="acc-info">
+            <div id="accName" class="name"></div>
+            <div id="accEmail" class="email"></div>
+          </div>
+          <button id="signOutBtn" class="signout-btn" type="button">Выход</button>
+        </div>
+      </aside>
       <div id="userBar" class="user-bar"><span id="userEmail"></span><button id="newChatBtn" class="link-btn" type="button">New chat</button></div>
       <div id="messages" class="messages" aria-live="polite"></div>
       <div class="composer" aria-label="composer">
@@ -97,7 +152,7 @@
   <script src="config.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
     // ⚡ Твой Firebase config (клиентский — можно хранить в коде)
     const firebaseConfig = {
@@ -161,13 +216,44 @@
       chatSection.classList.add("show");
       chatSection.setAttribute("aria-hidden", "false");
       document.getElementById("userBar").textContent = "👤 " + email;
-      // Rebuild user bar to include New chat button and email
-      const userBar = document.getElementById("userBar");
-      if (userBar) {
-        userBar.innerHTML = '<span id="userEmail"></span><button id="newChatBtn" class="link-btn" type="button">New chat</button>';
-        const emailEl = document.getElementById("userEmail");
-        if (emailEl) emailEl.textContent = email;
-      }
+      // Fill email and prepare sidebar
+      const emailEl = document.getElementById("userEmail");
+      if (emailEl) emailEl.textContent = email;
+
+      const sidebar = document.getElementById('sidebar');
+      sidebar.hidden = false;
+      const accEmail = document.getElementById('accEmail');
+      if (accEmail) accEmail.textContent = email;
+      const accName = document.getElementById('accName');
+      if (accName) accName.textContent = email.split('@')[0];
+      const avatar = document.getElementById('userAvatar');
+      if (avatar) avatar.textContent = (email[0] || '?').toUpperCase();
+
+      // Remove legacy New chat in top bar if it exists
+      document.querySelector('#userBar #newChatBtn')?.remove();
+
+      // Sidebar toggle state per user
+      const sbKey = `sb:collapsed:${email}`;
+      try {
+        const isCollapsed = localStorage.getItem(sbKey) === '1';
+        sidebar.classList.toggle('collapsed', isCollapsed);
+        sidebar.setAttribute('aria-expanded', String(!isCollapsed));
+      } catch(_) {}
+      document.getElementById('sbToggle')?.addEventListener('click', () => {
+        const isCollapsed = !sidebar.classList.contains('collapsed');
+        sidebar.classList.toggle('collapsed', isCollapsed);
+        sidebar.setAttribute('aria-expanded', String(!isCollapsed));
+        try { localStorage.setItem(sbKey, isCollapsed ? '1' : '0'); } catch(_) {}
+      });
+
+      document.getElementById('signOutBtn')?.addEventListener('click', async () => {
+        try { await signOut(auth); } catch(_) {}
+        chatSection.classList.remove('show');
+        chatSection.setAttribute('aria-hidden', 'true');
+        authSection.style.display = '';
+        sidebar.hidden = true;
+      });
+
       startChat(token);
     }
 
@@ -180,10 +266,13 @@
       const inputEl = document.getElementById('inputMessage');
       const sendBtn = document.getElementById('sendBtn');
       const newChatBtn = document.getElementById('newChatBtn');
+      const chatListEl = document.getElementById('chatList');
       const emailForKey = (document.getElementById('userEmail')?.textContent || 'anonymous');
       const chatKey = `chatId:${emailForKey}`;
       let chatId = null;
       try { chatId = localStorage.getItem(chatKey) || null; } catch(_) {}
+      const listLSKey = `chats:${emailForKey}`;
+      let lastUserText = '';
 
       function scrollBottom(){ messagesEl.scrollTop = messagesEl.scrollHeight + 999; }
       function appendMessage(text, side='left'){
@@ -216,6 +305,7 @@
         inputEl.value = '';
         inputEl.focus();
         setTyping(true);
+        lastUserText = val;
         try{
           const resp = await fetch(API_URL, {
             method:'POST',
@@ -226,6 +316,15 @@
           if (data && data.chatId && !chatId) {
             chatId = data.chatId;
             try { localStorage.setItem(chatKey, chatId); } catch(_) {}
+            try {
+              const arr = JSON.parse(localStorage.getItem(listLSKey) || '[]');
+              const idx = arr.findIndex(c => c.id === chatId);
+              const snippet = (lastUserText || '').replace(/\s+/g,' ').trim();
+              if (idx === -1) arr.unshift({ id: chatId, snippet, updatedAt: Date.now() });
+              else { arr[idx].snippet = snippet; arr[idx].updatedAt = Date.now(); }
+              localStorage.setItem(listLSKey, JSON.stringify(arr.slice(0,50)));
+            } catch(_) {}
+            try { refreshChatList && refreshChatList(); } catch(_) {}
           }
           setTyping(false);
           appendMessage(data.reply || '⚠️ Пустой ответ', 'left');
@@ -253,6 +352,86 @@
           }
         } catch(_) { /* ignore */ }
       })();
+
+      async function loadChatMessages(id){
+        try {
+          const base = API_BASE.replace(/\/$/, '');
+          const resp = await fetch(`${base}/api/ai-chat/history?limit=200&chatId=${encodeURIComponent(id)}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          const data = await resp.json();
+          if (data?.ok && Array.isArray(data.items)) {
+            messagesEl.innerHTML = '';
+            data.items.forEach(m => appendMessage(m.content, m.role === 'user' ? 'right' : 'left'));
+          }
+        } catch(_) { /* ignore */ }
+      }
+
+      function openChat(id){
+        chatId = id;
+        try { localStorage.setItem(chatKey, chatId); } catch(_) {}
+        messagesEl.innerHTML = '';
+        appendMessage('Загружаю историю...', 'left');
+        loadChatMessages(id).then(() => highlightActive());
+      }
+
+      function highlightActive(){
+        const nodes = chatListEl?.querySelectorAll('.chat-item');
+        nodes?.forEach(n => n.classList.toggle('active', n.getAttribute('data-id') === chatId));
+      }
+
+      function buildListFrom(items){
+        if(!chatListEl) return;
+        chatListEl.innerHTML = '';
+        const frag = document.createDocumentFragment();
+        items.forEach(it => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'chat-item';
+          btn.setAttribute('data-id', it.id);
+          btn.innerHTML = `<span class=\"dot\"></span><span class=\"title\">${it.snippet}</span>`;
+          btn.addEventListener('click', () => openChat(it.id));
+          // Build DOM-safe content (avoid HTML escaping issues)
+          btn.replaceChildren();
+          const sDot = document.createElement('span'); sDot.className = 'dot';
+          const sTitle = document.createElement('span'); sTitle.className = 'title'; sTitle.textContent = it.snippet;
+          btn.appendChild(sDot); btn.appendChild(sTitle);
+          frag.appendChild(btn);
+        });
+        chatListEl.appendChild(frag);
+        highlightActive();
+      }
+
+      async function refreshChatList(){
+        const base = API_BASE.replace(/\/$/, '');
+        try{
+          const resp = await fetch(`${base}/api/ai-chat/history?limit=200`, { headers:{ 'Authorization': `Bearer ${token}` }});
+          const data = await resp.json();
+          if(data?.ok && Array.isArray(data.items)){
+            const map = new Map();
+            data.items.forEach(m => {
+              const id = m.chatId || 'unknown';
+              const ts = new Date(m.createdAt || Date.now()).getTime();
+              const s = (m.content || '').replace(/\s+/g,' ').trim();
+              const o = map.get(id) || { id, lastTs:0, lastUser:'', lastAssistant:'' };
+              if (ts > o.lastTs) o.lastTs = ts;
+              if (m.role === 'user') o.lastUser = s || o.lastUser; else o.lastAssistant = s || o.lastAssistant;
+              map.set(id, o);
+            });
+            const arr = Array.from(map.values())
+              .map(o => ({ id:o.id, snippet:(o.lastUser || o.lastAssistant || 'Новый чат').slice(0,48) + ((o.lastUser || o.lastAssistant || '').length>48?'…':''), updatedAt:o.lastTs }))
+              .sort((a,b)=>b.updatedAt - a.updatedAt);
+            buildListFrom(arr);
+            try { localStorage.setItem(listLSKey, JSON.stringify(arr)); } catch(_) {}
+            return;
+          }
+          throw new Error('no data');
+        }catch(_){
+          try { const arr = JSON.parse(localStorage.getItem(listLSKey) || '[]'); buildListFrom(arr); } catch(__) {}
+        }
+      }
+
+      refreshChatList();
 
       // New chat: reset stored chatId and clear message view
       if (newChatBtn) {
