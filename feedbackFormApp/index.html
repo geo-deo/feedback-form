@@ -119,6 +119,16 @@
     .sidebar.collapsed .sb-brand-row:hover #sbToggle{ opacity:1; pointer-events:auto; }
     /* Center icons when collapsed */
     .sidebar.collapsed .sb-btn{ justify-content:center; padding-left:0; padding-right:0; }
+
+    /* Center user avatar in collapsed sidebar */
+    .sidebar.collapsed .sb-account{
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+    .sidebar.collapsed .avatar{
+      margin-left: 0;
+      justify-self: center;
+    }
     .sidebar.collapsed .sb-account{ justify-content:center; }
   </style>
 </head>
