@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -69,7 +69,7 @@
     .composer{ grid-column:2; grid-row:3; }
 
     .sidebar{ background:#f8fafc; border-right:1px solid #e5e7eb; display:flex; flex-direction:column; width:280px; transition:width .2s ease; }
-    .sidebar.collapsed{ width:60px; }
+    .sidebar.collapsed{ width:72px; }
     .sidebar[hidden]{ display:none !important; }
     .sb-top{ padding:8px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid #f3f4f6; }
     .sb-btn{ display:flex; align-items:center; gap:8px; width:100%; border:none; background:transparent; padding:10px 12px; border-radius:8px; cursor:pointer; color:#111827; }
@@ -85,11 +85,12 @@
     .chat-item .dot{ width:6px; height:6px; border-radius:50%; background:#d1d5db; flex:0 0 6px; }
     .sidebar.collapsed .chat-item .title{ display:none; }
     .sidebar.collapsed .chat-item{ justify-content:center; }
-    .sb-account{ border-top:1px solid #f3f4f6; padding:10px; display:flex; align-items:center; gap:10px; }
-    .avatar{ width:28px; height:28px; border-radius:50%; background:#e5e7eb; color:#111827; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+    .sb-account{ margin-top:auto; border-top:1px solid #f3f4f6; padding:10px; display:flex; align-items:center; gap:10px; }
+    .avatar{ width:32px; height:32px; border-radius:50%; background:#e5e7eb; color:#111827; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
     .acc-info{ display:flex; flex-direction:column; font-size:12px; color:#6b7280; min-width:0; }
     .acc-info .name{ color:#111827; font-weight:600; }
     .sidebar.collapsed .acc-info{ display:none; }
+    .sidebar.collapsed .signout-btn{ display:none; }
     .signout-btn{ margin-left:auto; background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:12px; border-radius:6px; padding:6px 8px; }
     .signout-btn:hover{ background:#fef2f2; }
     /* Hide legacy New chat in top bar */
@@ -233,6 +234,22 @@
       const avatar = document.getElementById('userAvatar');
       if (avatar) avatar.textContent = (email[0] || '?').toUpperCase();
 
+      // Normalize sidebar UI strings to English
+      try {
+        const sbText = document.querySelector('#sbToggle .sb-text');
+        if (sbText) sbText.textContent = 'Menu';
+        const sbToggle = document.getElementById('sbToggle');
+        if (sbToggle) { sbToggle.title = 'Toggle sidebar'; sbToggle.setAttribute('aria-label','Toggle sidebar'); }
+        const sbIcon = document.querySelector('#sbToggle .sb-icon');
+        if (sbIcon) sbIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h16"/></svg>';
+        const newBtn = document.getElementById('newChatBtn');
+        if (newBtn) { newBtn.title = 'New chat'; newBtn.setAttribute('aria-label','New chat'); }
+        const chatList = document.getElementById('chatList');
+        if (chatList) chatList.setAttribute('aria-label','Chat history');
+        const signOutBtn = document.getElementById('signOutBtn');
+        if (signOutBtn) signOutBtn.textContent = 'Sign out';
+      } catch(_) {}
+
       // Remove legacy New chat in top bar if it exists
       document.querySelector('#userBar #newChatBtn')?.remove();
 
@@ -286,6 +303,7 @@
         messagesEl.appendChild(el);
         scrollBottom();
       }
+      function setTyping_EN(on){ try{ setTyping(on, 'AI is typing…'); }catch(_){ /* fallback */ } }
       function setTyping(on, text='AI печатает…'){
         if(on){
           if(!messagesEl.querySelector('.__typing')){
@@ -308,7 +326,7 @@
         appendMessage(val, 'right');
         inputEl.value = '';
         inputEl.focus();
-        setTyping(true);
+        setTyping_EN(true);
         lastUserText = val;
         try{
           const resp = await fetch(API_URL, {
@@ -356,6 +374,12 @@
           }
         } catch(_) { /* ignore */ }
       })();
+
+      // If nothing loaded, show English greeting
+      if (!messagesEl.querySelector('.msg')) {
+        messagesEl.innerHTML = '';
+        appendMessage('Hi! How can I help?', 'left');
+      }
 
       async function loadChatMessages(id){
         try {
@@ -448,6 +472,25 @@
         });
       }
     }
+  </script>
+  <script>
+    // Ensure EN notice on New chat even if earlier handler added another message
+    document.addEventListener('click', function(e){
+      var btn = e.target && (e.target.closest ? e.target.closest('#newChatBtn') : null);
+      if (btn) {
+        setTimeout(function(){
+          try {
+            var m = document.getElementById('messages');
+            if (!m) return;
+            m.innerHTML = '';
+            var el = document.createElement('div');
+            el.className = 'msg left';
+            el.textContent = 'New chat started. Type your first message.';
+            m.appendChild(el);
+          } catch(_) {}
+        }, 0);
+      }
+    });
   </script>
 </body>
 </html>
