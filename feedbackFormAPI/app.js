@@ -58,7 +58,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 // ===== AI Chat Endpoint =====
 app.post("/api/ai-chat", verifyToken, async (req, res) => {
-  const { message } = req.body;
+  const { message, chatId: chatIdInput } = req.body;
   if (!message || !String(message).trim()) {
     return res.status(400).json({ error: "No message provided" });
   }
@@ -77,6 +77,7 @@ app.post("/api/ai-chat", verifyToken, async (req, res) => {
     });
 
     const reply = completion.choices[0].message.content;
+    const chatId = chatIdInput || uuidv4();
 
     // Log per-user chat history (best-effort)
     try {
@@ -85,6 +86,7 @@ app.post("/api/ai-chat", verifyToken, async (req, res) => {
           {
             id: uuidv4(),
             userId: req.user.uid,
+            chatId,
             userEmail: req.user.email || null,
             role: "user",
             content: String(message),
@@ -92,6 +94,7 @@ app.post("/api/ai-chat", verifyToken, async (req, res) => {
           {
             id: uuidv4(),
             userId: req.user.uid,
+            chatId,
             userEmail: req.user.email || null,
             role: "assistant",
             content: String(reply),
@@ -102,7 +105,7 @@ app.post("/api/ai-chat", verifyToken, async (req, res) => {
       console.error("ChatLog error:", e);
     }
 
-    res.json({ reply });
+    res.json({ reply, chatId });
   } catch (err) {
     console.error("AI error:", err);
     res.status(500).json({ error: "AI request failed" });
@@ -113,8 +116,12 @@ app.post("/api/ai-chat", verifyToken, async (req, res) => {
 app.get("/api/ai-chat/history", verifyToken, async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const chatId = req.query.chatId ? String(req.query.chatId) : undefined;
+    const where = chatId
+      ? { userId: req.user.uid, chatId }
+      : { userId: req.user.uid };
     const items = await prisma.chatLog.findMany({
-      where: { userId: req.user.uid },
+      where,
       orderBy: { createdAt: "asc" },
       take: limit,
     });

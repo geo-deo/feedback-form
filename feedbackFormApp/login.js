@@ -119,10 +119,11 @@ document.addEventListener("DOMContentLoaded", () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${await user.getIdToken()}`,
           },
-          body: JSON.stringify({ message: val })
+          body: JSON.stringify({ message: val, chatId: window.__chatId || null })
         });
 
         const data = await resp.json();
+        if (data.chatId && !window.__chatId) { window.__chatId = data.chatId; }
         setTyping(false);
         appendMessage(data.reply || "⚠️ Пустой ответ", "left");
       } catch (err) {
@@ -143,7 +144,8 @@ document.addEventListener("DOMContentLoaded", () => {
     (async () => {
       try {
         const token = await user.getIdToken();
-        const resp = await fetch(API_BASE.replace(/\/$/, "") + "/api/ai-chat/history?limit=50", {
+        const histUrl = API_BASE.replace(/\/$/, "") + "/api/ai-chat/history?limit=50" + (window.__chatId ? `&chatId=${encodeURIComponent(window.__chatId)}` : "");
+        const resp = await fetch(histUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await resp.json();

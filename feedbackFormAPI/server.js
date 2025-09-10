@@ -21,14 +21,25 @@ async function ensureSchema() {
       CREATE TABLE IF NOT EXISTS "ChatLog" (
         "id" TEXT PRIMARY KEY,
         "userId" TEXT NOT NULL,
+        "chatId" TEXT NOT NULL,
         "userEmail" TEXT,
         "role" TEXT NOT NULL,
         "content" TEXT NOT NULL,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    // In case ChatLog already existed without chatId, add it
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "ChatLog" ADD COLUMN IF NOT EXISTS "chatId" TEXT;
+    `);
     await prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS "ChatLog_userId_createdAt_idx" ON "ChatLog"("userId", "createdAt");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "ChatLog_userId_chatId_createdAt_idx" ON "ChatLog"("userId", "chatId", "createdAt");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "ChatLog_chatId_idx" ON "ChatLog"("chatId");
     `);
     console.log("DB schema ensured");
   } catch (e) {

@@ -27,10 +27,12 @@ model Feedback {
 model ChatLog {
   id         String   @id @default(uuid())
   userId     String
+  chatId     String?
   userEmail  String?
   role       String   // "user" | "assistant" | "system"
   content    String
   createdAt  DateTime @default(now())
 
-  @@index([userId, createdAt])
+  @@index([userId, chatId, createdAt])
+  @@index([chatId])
 }
