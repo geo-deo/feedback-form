@@ -77,6 +77,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const messagesEl = document.getElementById("messages");
     const inputEl = document.getElementById("inputMessage");
     const sendBtn = document.getElementById("sendBtn");
+    const newChatBtn = document.getElementById("newChatBtn");
+
+    const chatKey = `chatId:${user.uid}`;
+    let chatId = null;
+    try { chatId = localStorage.getItem(chatKey) || null; } catch (_) {}
 
     function appendMessage(text, side = "left") {
       const el = document.createElement("div");
@@ -119,11 +124,14 @@ document.addEventListener("DOMContentLoaded", () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${await user.getIdToken()}`,
           },
-          body: JSON.stringify({ message: val, chatId: window.__chatId || null })
+          body: JSON.stringify({ message: val, chatId })
         });
 
         const data = await resp.json();
-        if (data.chatId && !window.__chatId) { window.__chatId = data.chatId; }
+        if (data.chatId && !chatId) {
+          chatId = data.chatId;
+          try { localStorage.setItem(chatKey, chatId); } catch (_) {}
+        }
         setTyping(false);
         appendMessage(data.reply || "⚠️ Пустой ответ", "left");
       } catch (err) {
@@ -140,11 +148,22 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    // New chat button handler
+    if (newChatBtn) {
+      newChatBtn.addEventListener("click", () => {
+        try { localStorage.removeItem(chatKey); } catch (_) {}
+        chatId = null;
+        messagesEl.innerHTML = "";
+        appendMessage("Новый чат начат. Напишите сообщение.", "left");
+        inputEl.focus();
+      });
+    }
+
     // Load recent chat history for this user (best-effort)
     (async () => {
       try {
         const token = await user.getIdToken();
-        const histUrl = API_BASE.replace(/\/$/, "") + "/api/ai-chat/history?limit=50" + (window.__chatId ? `&chatId=${encodeURIComponent(window.__chatId)}` : "");
+        const histUrl = API_BASE.replace(/\/$/, "") + "/api/ai-chat/history?limit=50" + (chatId ? `&chatId=${encodeURIComponent(chatId)}` : "");
         const resp = await fetch(histUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });

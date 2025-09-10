@@ -43,7 +43,9 @@
     /* ---------- ЭКРАН ЧАТА ---------- */
     .chat-screen{ flex:1 1 auto; min-height:0; display:none; flex-direction:column; }
     .chat-screen.show{ display:flex; }
-    .user-bar{ padding:12px; text-align:center; font-size:13px; color:var(--muted); border-bottom:1px solid #f3f4f6; }
+    .user-bar{ padding:12px; display:flex; align-items:center; justify-content:space-between; font-size:13px; color:var(--muted); border-bottom:1px solid #f3f4f6; }
+    .link-btn{ background:transparent; border:none; color:var(--accent); font-weight:600; cursor:pointer; padding:6px 10px; border-radius:8px; }
+    .link-btn:hover{ background:#eef2ff; }
 
     .messages{ flex:1 1 auto; min-height:0; padding:16px; overflow-y:auto; overscroll-behavior:contain; display:flex; flex-direction:column; gap:12px; }
     .msg{ max-width:78%; padding:10px 12px; border-radius:12px; box-shadow:0 1px 0 rgba(0,0,0,.02); line-height:1.35; font-size:14px; }
@@ -82,7 +84,7 @@
 
     <!-- 🔹 Чат -->
     <section id="chatSection" class="chat-screen" aria-hidden="true">
-      <div id="userBar" class="user-bar"></div>
+      <div id="userBar" class="user-bar"><span id="userEmail"></span><button id="newChatBtn" class="link-btn" type="button">New chat</button></div>
       <div id="messages" class="messages" aria-live="polite"></div>
       <div class="composer" aria-label="composer">
         <input id="inputMessage" placeholder="Напишите сообщение..." aria-label="Сообщение" />
@@ -158,6 +160,13 @@
       chatSection.classList.add("show");
       chatSection.setAttribute("aria-hidden", "false");
       document.getElementById("userBar").textContent = "👤 " + email;
+      // Rebuild user bar to include New chat button and email
+      const userBar = document.getElementById("userBar");
+      if (userBar) {
+        userBar.innerHTML = '<span id="userEmail"></span><button id="newChatBtn" class="link-btn" type="button">New chat</button>';
+        const emailEl = document.getElementById("userEmail");
+        if (emailEl) emailEl.textContent = email;
+      }
       startChat(token);
     }
 
@@ -169,6 +178,11 @@
       const messagesEl = document.getElementById('messages');
       const inputEl = document.getElementById('inputMessage');
       const sendBtn = document.getElementById('sendBtn');
+      const newChatBtn = document.getElementById('newChatBtn');
+      const emailForKey = (document.getElementById('userEmail')?.textContent || 'anonymous');
+      const chatKey = `chatId:${emailForKey}`;
+      let chatId = null;
+      try { chatId = localStorage.getItem(chatKey) || null; } catch(_) {}
 
       function scrollBottom(){ messagesEl.scrollTop = messagesEl.scrollHeight + 999; }
       function appendMessage(text, side='left'){
@@ -205,9 +219,13 @@
           const resp = await fetch(API_URL, {
             method:'POST',
             headers:{ 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ message: val })
+            body: JSON.stringify({ message: val, chatId })
           });
           const data = await resp.json().catch(()=>({ reply:'⚠️ Неверный ответ сервера' }));
+          if (data && data.chatId && !chatId) {
+            chatId = data.chatId;
+            try { localStorage.setItem(chatKey, chatId); } catch(_) {}
+          }
           setTyping(false);
           appendMessage(data.reply || '⚠️ Пустой ответ', 'left');
         }catch(err){
@@ -218,6 +236,33 @@
 
       sendBtn.addEventListener('click', sendMessage);
       inputEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
+
+      // Load history strictly for current chat (if chatId known)
+      (async () => {
+        if (!chatId) return;
+        try {
+          const base = API_BASE.replace(/\/$/, '');
+          const resp = await fetch(`${base}/api/ai-chat/history?limit=50&chatId=${encodeURIComponent(chatId)}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          const data = await resp.json();
+          if (data?.ok && Array.isArray(data.items)) {
+            messagesEl.innerHTML = '';
+            data.items.forEach(m => appendMessage(m.content, m.role === 'user' ? 'right' : 'left'));
+          }
+        } catch(_) { /* ignore */ }
+      })();
+
+      // New chat: reset stored chatId and clear message view
+      if (newChatBtn) {
+        newChatBtn.addEventListener('click', () => {
+          try { localStorage.removeItem(chatKey); } catch(_) {}
+          chatId = null;
+          messagesEl.innerHTML = '';
+          appendMessage('Новый чат начат. Напишите сообщение.', 'left');
+          inputEl.focus();
+        });
+      }
     }
   </script>
 </body>
